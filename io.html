@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>circle.io</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #login { text-align: center; padding-top: 20px; }
+        #game { display: none; }
+        canvas { border: 1px solid black; }
+    </style>
+</head>
+<body>
+    <div id="login">
+        <input type="text" id="username" placeholder="名前を入力">
+        <button onclick="startGame()">プレイ</button>
+    </div>
+    <div id="game">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ranking"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const socket = new WebSocket('ws://localhost:8080'); // サーバーのアドレスに合わせて変更
+
+        let username;
+        let players = [];
+
+        function startGame() {
+            username = document.getElementById('username').value;
+            if (username) {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('game').style.display = 'block';
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                socket.onopen = () => {
+                    socket.send(JSON.stringify({ type: 'join', username: username }));
+                };
+
+                socket.onmessage = (event) => {
+                    let data = JSON.parse(event.data);
+                    if (data.type === 'update') {
+                        players = data.players;
+                        drawGame();
+                    }
+                };
+
+                setInterval(() => {
+                    socket.send(JSON.stringify({ type: 'updatePosition', x: Math.random() * canvas.width, y: Math.random() * canvas.height }));
+                }, 1000 / 60); // 60 FPS
+            }
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            players.forEach(player => {
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, 20, 0, 2 * Math.PI);
+                ctx.fillStyle = player.color;
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+    </script>
+</body>
+</html>
