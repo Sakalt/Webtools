@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ルーレット</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+        }
+        input[type="color"] {
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ルーレット</h1>
+        <div>
+            <label for="colors">色数 (3-6):</label>
+            <input type="number" id="colors" min="3" max="6" value="3">
+        </div>
+        <div id="colorInputs">
+            <label for="color1">色1:</label>
+            <input type="color" id="color1" value="#FF0000">
+            <label for="color2">色2:</label>
+            <input type="color" id="color2" value="#00FF00">
+            <label for="color3">色3:</label>
+            <input type="color" id="color3" value="#0000FF">
+            <label for="color4">色4:</label>
+            <input type="color" id="color4" value="#FFFF00">
+            <label for="color5">色5:</label>
+            <input type="color" id="color5" value="#FF00FF">
+            <label for="color6">色6:</label>
+            <input type="color" id="color6" value="#00FFFF">
+        </div>
+        <div>
+            <label for="items">ルーレット項目 (カンマ区切り):</label>
+            <input type="text" id="items" placeholder="項目1,項目2,項目3">
+        </div>
+        <button onclick="spin()">回す</button>
+        <button onclick="saveData()">保存</button>
+        <button onclick="loadData()">読み込む</button>
+        <div id="result"></div>
+    </div>
+    <script>
+        document.getElementById('colors').addEventListener('input', updateColorInputs);
+        updateColorInputs();
+
+        function updateColorInputs() {
+            const colorCount = document.getElementById('colors').value;
+            const colorInputs = document.querySelectorAll('[id^="color"]');
+            
+            colorInputs.forEach((input, index) => {
+                if (index < colorCount) {
+                    input.parentElement.style.display = 'inline-block';
+                } else {
+                    input.parentElement.style.display = 'none';
+                }
+            });
+        }
+
+        function spin() {
+            const colorCount = document.getElementById('colors').value;
+            const colors = [];
+            
+            for (let i = 1; i <= colorCount; i++) {
+                colors.push(document.getElementById(`color${i}`).value);
+            }
+
+            const items = document.getElementById('items').value.split(',').map(item => item.trim());
+            const randomItem = items[Math.floor(Math.random() * items.length)];
+            document.getElementById('result').innerHTML = `選ばれた項目: ${randomItem}`;
+        }
+
+        function saveData() {
+            const colorCount = document.getElementById('colors').value;
+            const colors = [];
+            
+            for (let i = 1; i <= colorCount; i++) {
+                colors.push(document.getElementById(`color${i}`).value);
+            }
+            
+            const items = document.getElementById('items').value;
+
+            const data = {
+                colorCount: colorCount,
+                colors: colors,
+                items: items
+            };
+
+            localStorage.setItem('rouletteData', JSON.stringify(data));
+            alert('データが保存されました。');
+        }
+
+        function loadData() {
+            const data = JSON.parse(localStorage.getItem('rouletteData'));
+
+            if (data) {
+                document.getElementById('colors').value = data.colorCount;
+                updateColorInputs();
+
+                data.colors.forEach((color, index) => {
+                    document.getElementById(`color${index + 1}`).value = color;
+                });
+
+                document.getElementById('items').value = data.items;
+                alert('データが読み込まれました。');
+            } else {
+                alert('保存されたデータがありません。');
+            }
+        }
+    </script>
+</body>
+</html>
