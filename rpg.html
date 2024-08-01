@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>タッチ対応オンラインRPG</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #e0e0e0;
+        }
+        #joystick {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 100px;
+            height: 100px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            touch-action: none;
+        }
+        #joystickInner {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            top: 25px;
+            left: 25px;
+        }
+        #inventory {
+            position: absolute;
+            bottom: 140px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .item {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background-color: #ccc;
+            border: 1px solid #333;
+            margin: 5px;
+            text-align: center;
+            line-height: 40px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="joystick">
+        <div id="joystickInner"></div>
+    </div>
+    <div id="inventory">
+        <div class="item" onclick="useItem('sword')">⚔️</div>
+        <div class="item" onclick="useItem('shield')">🛡️</div>
+        <div class="item" onclick="useItem('wood')">🌳</div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const joystick = document.getElementById('joystick');
+        const joystickInner = document.getElementById('joystickInner');
+        const players = {};
+
+        let playerId = Math.random().toString(36).substring(2);
+        let x = Math.random() * window.innerWidth;
+        let y = Math.random() * window.innerHeight;
+        let inventory = {
+            sword: false,
+            shield: false,
+            wood: false
+        };
+        let touchStartX, touchStartY, touchCurrentX, touchCurrentY;
+        let moving = false;
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        function drawPlayer(x, y) {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(x, y, 20, 20);
+        }
+
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer(x, y);
+            for (const id in players) {
+                const player = players[id];
+                ctx.fillStyle = 'red';
+                ctx.fillRect(player.x, player.y, 20, 20);
+            }
+        }
+
+        function handleTouchStart(event) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+            moving = true;
+        }
+
+        function handleTouchMove(event) {
+            if (!moving) return;
+
+            touchCurrentX = event.touches[0].clientX;
+            touchCurrentY = event.touches[0].clientY;
+
+            const deltaX = touchCurrentX - touchStartX;
+            const deltaY = touchCurrentY - touchStartY;
+
+            x += deltaX * 0.1;
+            y += deltaY * 0.1;
+
+            touchStartX = touchCurrentX;
+            touchStartY = touchCurrentY;
+
+            sendPlayerData();
+        }
+
+        function handleTouchEnd(event) {
+            moving = false;
+        }
+
+        function sendPlayerData() {
+            const data = {
+                id: playerId,
+                x: x,
+                y: y,
+                inventory: inventory
+            };
+            // サーバーにデータを送信 (例: WebSocket, Fetch API)
+        }
+
+        function receivePlayerData(data) {
+            players[data.id] = data;
+            updateGame();
+        }
+
+        function useItem(item) {
+            if (inventory[item]) {
+                alert(item + ' を使用しました!');
+            } else {
+                alert(item + ' を持っていません。');
+            }
+        }
+
+        joystick.addEventListener('touchstart', handleTouchStart);
+        joystick.addEventListener('touchmove', handleTouchMove);
+        joystick.addEventListener('touchend', handleTouchEnd);
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowUp') y -= 5;
+            if (event.key === 'ArrowDown') y += 5;
+            if (event.key === 'ArrowLeft') x -= 5;
+            if (event.key === 'ArrowRight') x += 5;
+            sendPlayerData();
+        });
+
+        setInterval(updateGame, 1000 / 60);
+
+        // サーバーからのデータ受信の例 (WebSocket)
+        // const socket = new WebSocket('wss://your-websocket-server.com');
+        // socket.onmessage = (event) => {
+        //     const data = JSON.parse(event.data);
+        //     receivePlayerData(data);
+        // };
+    </script>
+</body>
+</html>
