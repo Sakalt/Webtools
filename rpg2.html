@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>オンラインRPG</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #gameCanvas { display: block; background-color: #e0e0e0; }
+        #joystick { position: absolute; bottom: 20px; left: 20px; width: 100px; height: 100px; background-color: rgba(0, 0, 0, 0.3); border-radius: 50%; touch-action: none; }
+        #joystickInner { position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.5); border-radius: 50%; top: 25px; left: 25px; }
+        #inventory { position: absolute; bottom: 140px; left: 20px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
+        .item { display: inline-block; width: 40px; height: 40px; background-color: #ccc; border: 1px solid #333; margin: 5px; text-align: center; line-height: 40px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="joystick">
+        <div id="joystickInner"></div>
+    </div>
+    <div id="inventory">
+        <div class="item" onclick="useItem('sword')">⚔️</div>
+        <div class="item" onclick="useItem('shield')">🛡️</div>
+        <div class="item" onclick="useItem('wood')">🌳</div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const joystick = document.getElementById('joystick');
+        const joystickInner = document.getElementById('joystickInner');
+        const players = {};
+        const enemies = [{ id: 'enemy1', x: 100, y: 100, hp: 20, damage: 3, lv: 1 }];
+        const shopItems = { sword: 14, shield: 12 };
+        
+        let playerId = Math.random().toString(36).substring(2);
+        let x = Math.random() * window.innerWidth;
+        let y = Math.random() * window.innerHeight;
+        let hp = 30;
+        let gold = 0;
+        let inventory = { sword: false, shield: false, wood: false };
+        let touchStartX, touchStartY, touchCurrentX, touchCurrentY;
+        let moving = false;
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const socket = new WebSocket('ws://localhost:8080');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'update') {
+                for (const id in data.players) {
+                    if (id !== playerId) {
+                        players[id] = data.players[id];
+                    }
+                }
+            }
+        };
+
+        function drawPlayer(x, y) {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(x, y, 20, 20);
+        }
+
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(enemy.x, enemy.y, 20, 20);
+            });
+        }
+
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer(x, y);
+            drawEnemies();
+            for (const id in players) {
+                const player = players[id];
+                ctx.fillStyle = 'red';
+                ctx.fillRect(player.x, player.y, 20, 20);
+            }
+        }
+
+        function handleTouchStart(event) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+            moving = true;
+        }
+
+        function handleTouchMove(event) {
+            if (!moving) return;
+
+            touchCurrentX = event.touches[0].clientX;
+            touchCurrentY = event.touches[0].clientY;
+
+            const deltaX = touchCurrentX - touchStartX;
+            const deltaY = touchCurrentY - touchStartY;
+
+            x += deltaX * 0.1;
+            y += deltaY * 0.1;
+
+            touchStartX = touchCurrentX;
+            touchStartY = touchCurrentY;
+
+            sendPlayerData();
+        }
+
+        function handleTouchEnd(event) {
+            moving = false;
+        }
+
+        function sendPlayerData() {
+            const data = {
+                type: 'update',
+                id: playerId,
+                x: x,
+                y: y,
+                hp: hp,
+                gold: gold,
+                inventory: inventory
+            };
+            socket.send(JSON.stringify(data));
+        }
+
+        function useItem(item) {
+            if (inventory[item]) {
+                alert(item + ' を使用しました!');
+            } else {
+                alert(item + ' を持っていません。');
+            }
+        }
+
+        function attackEnemy(enemyId) {
+            const enemy = enemies.find(e => e.id === enemyId);
+            if (enemy) {
+                enemy.hp -= 2.7; // 素手ダメージ
+                if (enemy.hp <= 0) {
+                    gold += 5; // 敵を倒すとコインをドロップ
+                    const index = enemies.indexOf(enemy);
+                    enemies.splice(index, 1);
+                }
+                sendPlayerData();
+            }
+        }
+
+        function buyItem(item) {
+            if (gold >= shopItems[item]) {
+                gold -= shopItems[item];
+                inventory[item] = true;
+                alert(item + ' を購入しました!');
+                sendPlayerData();
+            } else {
+                alert('ゴールドが足りません。');
+            }
+        }
+
+        function saveGame() {
+            localStorage.setItem('playerData', JSON.stringify({
+                x: x,
+                y: y,
+                hp: hp,
+                gold: gold,
+                inventory: inventory
+            }));
+        }
+
+        function loadGame() {
+            const data = JSON.parse(localStorage.getItem('playerData'));
+            if (data) {
+                x = data.x;
+                y = data.y;
+                hp = data.hp;
+                gold = data.gold;
+                inventory = data.inventory;
+            }
+        }
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowUp') y -= 5;
+            if (event.key === 'ArrowDown') y += 5;
+            if (event.key === 'ArrowLeft') x -= 5;
+            if (event.key === 'ArrowRight') x += 5;
+            sendPlayerData();
+        });
+
+        joystick.addEventListener('touchstart', handleTouchStart);
+        joystick.addEventListener('touchmove', handleTouchMove);
+        joystick.addEventListener('touchend', handleTouchEnd);
+
+        setInterval(updateGame, 1000 / 60);
+
+        loadGame();
+
+        window.addEventListener('beforeunload', saveGame);
+    </script>
+</body>
+</html>
