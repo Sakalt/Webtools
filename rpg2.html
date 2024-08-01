@@ -40,6 +40,7 @@
             background-color: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 5px;
+            display: none;
         }
         .item {
             display: inline-block;
@@ -176,27 +177,24 @@
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const leaderboardList = document.getElementById('leaderboardList');
-        const lightningBusterCost = 400;
         const spells = { feuer: 5, isen: 7, grass: 6, lightningBuster: 10 };
         const shopItems = { sword: 14, shield: 12, mpPotion: 5, bow: 20, axe: 25, dagger: 15 };
         
-        let playerId = Math.random().toString(36).substring(2);
-        let x = Math.random() * window.innerWidth;
-        let y = Math.random() * window.innerHeight;
-        let hp = 30;
-        let mp = 20;
+        let x = window.innerWidth / 2;
+        let y = window.innerHeight / 2;
+        let hp = 100;
+        let mp = 100;
         let gold = 0;
         let level = 1;
         let exp = 0;
-        let inventory = { sword: true, shield: false, wood: false, mpPotion: 1, lightningBuster: false, bow: false, axe: false, dagger: false };
+        let inventory = { sword: false, shield: false, wood: false, mpPotion: 1, lightningBuster: false, bow: false, axe: false, dagger: false };
         let touchStartX, touchStartY, touchCurrentX, touchCurrentY;
         let moving = false;
-        let weather = '晴れ';
         let players = {};
-        let enemies = [{ id: 'enemy1', x: 100, y: 100, hp: 20, damage: 3, lv: 1 }, { id: 'enemy2', x: 150, y: 150, hp: 30, damage: 5, lv: 2 }];
+        let enemies = [{ id: 'enemy1', x: 100, y: 100, hp: 20, damage: 3, lv: 1 }];
         let merchants = [{ id: 'merchant1', x: 200, y: 200 }];
         let trees = [{ id: 'tree1', x: 300, y: 300 }];
-        let npcs = [{ id: 'npc1', x: 350, y: 350, text: 'مرحبا!'}];
+        let npcs = [{ id: 'npc1', x: 350, y: 350, text: 'こんにちは!' }];
         let signs = [{ id: 'sign1', x: 400, y: 400, text: '⚡ここで最強魔法「ライトニングバスター」を取得できます⚡'}];
         let battle = { active: false, enemy: null };
         let socket = new WebSocket('ws://localhost:8080');
@@ -222,6 +220,8 @@
                 battle.enemy = data.enemy;
                 battleScreen.style.display = 'block';
                 battleLog.innerHTML = `敵が現れた！ HP: ${battle.enemy.hp}`;
+            } else if (data.type === 'dialog') {
+                openDialog(data.text);
             }
         });
 
@@ -365,6 +365,7 @@
                         battleLog.innerHTML += '敵を倒しました！<br>';
                         battle.active = false;
                         enemy.hp = 20; // リセットする場合
+                        battleScreen.style.display = 'none';
                     } else {
                         battleLog.innerHTML += `敵に攻撃を与えました！<br>`;
                     }
@@ -426,6 +427,21 @@
 
         joystick.addEventListener('touchstart', touchStart);
         joystick.addEventListener('touchmove', touchMove);
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Control') {
+                const inventoryDisplay = document.getElementById('inventory');
+                inventoryDisplay.style.display = inventoryDisplay.style.display === 'none' ? 'block' : 'none';
+            } else if (event.key === '1') {
+                castSpell('lightningBuster');
+            } else if (event.key === '2') {
+                castSpell('feuer');
+            } else if (event.key === '3') {
+                castSpell('isen');
+            } else if (event.key === '4') {
+                castSpell('grass');
+            }
+        });
 
         gameLoop();
     </script>
