@@ -3,18 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <title>オンラインRPG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Yomogi&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; overflow: hidden; }
-        #gameCanvas { display: block; background-color: #e0e0e0; }
-        #joystick { position: absolute; bottom: 20px; left: 20px; width: 100px; height: 100px; background-color: rgba(0, 0, 0, 0.3); border-radius: 50%; touch-action: none; }
-        #joystickInner { position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.5); border-radius: 50%; top: 25px; left: 25px; }
-        #inventory { position: absolute; bottom: 140px; left: 20px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
-        .item { display: inline-block; width: 40px; height: 40px; background-color: #ccc; border: 1px solid #333; margin: 5px; text-align: center; line-height: 40px; cursor: pointer; }
-        #chat { position: absolute; bottom: 10px; right: 10px; width: 300px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
-        #chatMessages { height: 100px; overflow-y: scroll; margin-bottom: 10px; }
-        #chatInput { width: calc(100% - 22px); }
-        #leaderboard { position: absolute; top: 10px; right: 10px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
-        #leaderboard ol { padding-left: 20px; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Yomogi', sans-serif;
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #e0e0e0;
+        }
+        #joystick {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 100px;
+            height: 100px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            touch-action: none;
+        }
+        #joystickInner {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            top: 25px;
+            left: 25px;
+        }
+        #inventory {
+            position: absolute;
+            bottom: 140px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .item {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background-color: #ccc;
+            border: 1px solid #333;
+            margin: 5px;
+            text-align: center;
+            line-height: 40px;
+            cursor: pointer;
+        }
+        #chat {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 300px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #chatMessages {
+            height: 100px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+        #chatInput {
+            width: calc(100% - 22px);
+        }
+        #leaderboard {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #leaderboard ol {
+            padding-left: 20px;
+        }
+        .npc {
+            color: green;
+        }
+        .sign {
+            color: brown;
+        }
+        .hp-bar {
+            position: absolute;
+            width: 100px;
+            height: 10px;
+            background-color: red;
+        }
+        .mp-bar {
+            position: absolute;
+            width: 100px;
+            height: 10px;
+            background-color: blue;
+            top: 12px;
+        }
+        #battleScreen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #dialog {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: black;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
@@ -30,6 +141,7 @@
         <div class="item" onclick="castSpell('isen')">❄️</div>
         <div class="item" onclick="castSpell('grass')">🌿</div>
         <div class="item" onclick="useItem('mpPotion')">🧪</div>
+        <div class="item" onclick="castSpell('lightningBuster')">⚡</div>
     </div>
     <div id="chat">
         <div id="chatMessages"></div>
@@ -39,19 +151,37 @@
         <h3>ランキング</h3>
         <ol id="leaderboardList"></ol>
     </div>
+    <div id="battleScreen">
+        <h2>戦闘中</h2>
+        <div id="battleLog"></div>
+        <button onclick="attack()">攻撃</button>
+        <button onclick="useItem('mpPotion')">MP回復</button>
+    </div>
+    <div id="dialog">
+        <div id="dialogContent"></div>
+        <button onclick="closeDialog()">閉じる</button>
+    </div>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const joystick = document.getElementById('joystick');
         const joystickInner = document.getElementById('joystickInner');
+        const battleScreen = document.getElementById('battleScreen');
+        const battleLog = document.getElementById('battleLog');
+        const dialog = document.getElementById('dialog');
+        const dialogContent = document.getElementById('dialogContent');
         const players = {};
         const enemies = [{ id: 'enemy1', x: 100, y: 100, hp: 20, damage: 3, lv: 1 }, { id: 'enemy2', x: 150, y: 150, hp: 30, damage: 5, lv: 2 }];
         const merchants = [{ id: 'merchant1', x: 200, y: 200 }];
         const trees = [{ id: 'tree1', x: 300, y: 300 }];
+        const npcs = [{ id: 'npc1', x: 350, y: 350, text: 'مرحبا!'}];
+        const signs = [{ id: 'sign1', x: 400, y: 400, text: '⚡ここで最強魔法「ライトニングバスター」を取得できます⚡'}];
         const shopItems = { sword: 14, shield: 12, mpPotion: 5 };
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const leaderboardList = document.getElementById('leaderboardList');
+        const lightningBusterCost = 400;
+        const battle = { active: false, enemy: null, playerTurn: true };
 
         let playerId = Math.random().toString(36).substring(2);
         let x = Math.random() * window.innerWidth;
@@ -61,8 +191,8 @@
         let gold = 0;
         let level = 1;
         let exp = 0;
-        let spells = { feuer: 5, isen: 7, grass: 6 };
-        let inventory = { sword: true, shield: false, wood: false, mpPotion: 1 };
+        let spells = { feuer: 5, isen: 7, grass: 6, lightningBuster: 10 };
+        let inventory = { sword: true, shield: false, wood: false, mpPotion: 1, lightningBuster: false };
         let touchStartX, touchStartY, touchCurrentX, touchCurrentY;
         let moving = false;
         let weather = '晴れ';
@@ -89,151 +219,63 @@
         function drawPlayer(x, y) {
             ctx.fillStyle = 'blue';
             ctx.fillRect(x, y, 20, 20);
+            drawHpBar(x, y, hp);
         }
 
         function drawEnemies() {
             enemies.forEach(enemy => {
                 ctx.fillStyle = 'red';
                 ctx.fillRect(enemy.x, enemy.y, 20, 20);
+                drawHpBar(enemy.x, enemy.y, enemy.hp);
             });
         }
 
         function drawMerchants() {
             merchants.forEach(merchant => {
-                ctx.fillStyle = 'green';
+                ctx.fillStyle = 'purple';
                 ctx.fillRect(merchant.x, merchant.y, 20, 20);
             });
         }
 
         function drawTrees() {
             trees.forEach(tree => {
-                ctx.fillStyle = 'brown';
+                ctx.fillStyle = 'green';
                 ctx.fillRect(tree.x, tree.y, 20, 20);
             });
         }
 
-        function updateGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawPlayer(x, y);
-            drawEnemies();
-            drawMerchants();
-            drawTrees();
-            for (const id in players) {
-                const player = players[id];
-                ctx.fillStyle = 'red';
-                ctx.fillRect(player.x, player.y, 20, 20);
-            }
-            checkCollisions();
-            updateWeather();
-        }
-
-        function checkCollisions() {
-            enemies.forEach(enemy => {
-                const distance = Math.sqrt((enemy.x - x) ** 2 + (enemy.y - y) ** 2);
-                if (distance < 25) {
-                    hp -= enemy.damage; // 敵がプレイヤーを攻撃
-                    if (hp <= 0) {
-                        alert('ゲームオーバー');
-                        hp = 30;
-                        x = Math.random() * window.innerWidth;
-                        y = Math.random() * window.innerHeight;
-                    }
+        function drawNpcs() {
+            npcs.forEach(npc => {
+                ctx.fillStyle = 'yellow';
+                ctx.fillRect(npc.x, npc.y, 20, 20);
+                if (npc === players[playerId]) {
+                    ctx.fillText(npc.text, npc.x + 25, npc.y + 10);
                 }
             });
         }
 
-        function handleTouchStart(event) {
-            touchStartX = event.touches[0].clientX;
-            touchStartY = event.touches[0].clientY;
-            moving = true;
+        function drawSigns() {
+            signs.forEach(sign => {
+                ctx.fillStyle = 'brown';
+                ctx.fillRect(sign.x, sign.y, 20, 20);
+                ctx.fillText(sign.text, sign.x + 25, sign.y + 10);
+            });
         }
 
-        function handleTouchMove(event) {
-            if (!moving) return;
-
-            touchCurrentX = event.touches[0].clientX;
-            touchCurrentY = event.touches[0].clientY;
-
-            const deltaX = touchCurrentX - touchStartX;
-            const deltaY = touchCurrentY - touchStartY;
-
-            x += deltaX * 0.1;
-            y += deltaY * 0.1;
-
-            touchStartX = touchCurrentX;
-            touchStartY = touchCurrentY;
-
-            sendPlayerData();
+        function drawHpBar(x, y, hp) {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(x, y - 10, 100, 10);
+            ctx.fillStyle = 'green';
+            ctx.fillRect(x, y - 10, hp, 10);
         }
 
-        function handleTouchEnd(event) {
-            moving = false;
-        }
-
-        function sendPlayerData() {
-            const data = {
-                type: 'update',
-                id: playerId,
-                x: x,
-                y: y,
-                hp: hp,
-                mp: mp,
-                gold: gold,
-                level: level,
-                exp: exp,
-                inventory: inventory,
-                weather: weather
-            };
-            socket.send(JSON.stringify(data));
-        }
-
-        function useItem(item) {
-            if (item === 'mpPotion' && inventory.mpPotion > 0) {
-                mp += 10; // MPを回復
-                inventory.mpPotion--;
-                sendPlayerData();
-            }
-        }
-
-        function castSpell(spell) {
-            if (mp >= spells[spell]) {
-                mp -= spells[spell]; // MPを消費
-                enemies.forEach(enemy => {
-                    const distance = Math.sqrt((enemy.x - x) ** 2 + (enemy.y - y) ** 2);
-                    if (distance < 100) {
-                        if (spell === 'feuer') {
-                            enemy.hp -= 10; // 火の呪文ダメージ
-                        } else if (spell === 'isen') {
-                            enemy.hp -= 7; // 氷の呪文ダメージ
-                            enemy.speed = 0.5; // 敵を遅くする効果
-                        } else if (spell === 'grass') {
-                            enemy.hp -= 8; // 草の呪文ダメージ
-                            enemy.poisoned = true; // 敵を毒状態にする効果
-                        }
-                        if (enemy.hp <= 0) {
-                            gold += 5; // 敵を倒すとコインをドロップ
-                            exp += 10; // 経験値を獲得
-                            const index = enemies.indexOf(enemy);
-                            enemies.splice(index, 1);
-                            checkLevelUp();
-                        }
-                    }
-                });
-                sendPlayerData();
-            } else {
-                alert('MPが足りません。');
-            }
-        }
-
-        function checkLevelUp() {
-            const levelUpExp = level * 50;
-            if (exp >= levelUpExp) {
-                level++;
-                exp -= levelUpExp;
-                hp += 10; // レベルアップでHPを回復
-                alert('レベルアップしました!');
-                sendPlayerData();
-            }
+        function updateLeaderboard(leaderboard) {
+            leaderboardList.innerHTML = '';
+            leaderboard.forEach(player => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${player.name}: ${player.score}`;
+                leaderboardList.appendChild(listItem);
+            });
         }
 
         function addChatMessage(message) {
@@ -245,103 +287,144 @@
 
         function sendMessage() {
             const message = chatInput.value;
-            const data = {
-                type: 'chat',
-                message: playerId + ': ' + message
-            };
-            socket.send(JSON.stringify(data));
-            chatInput.value = '';
+            if (message.trim()) {
+                socket.send(JSON.stringify({ type: 'chat', message: message }));
+                chatInput.value = '';
+            }
         }
 
-        function buyItem(item) {
-            if (gold >= shopItems[item]) {
-                gold -= shopItems[item];
-                inventory[item] = true;
-                alert(item + ' を購入しました!');
-                sendPlayerData();
+        function useItem(item) {
+            if (inventory[item]) {
+                if (item === 'mpPotion') {
+                    mp += 10;
+                    if (mp > 20) mp = 20;
+                }
+                if (item === 'sword') {
+                    // sword usage logic
+                }
+                if (item === 'shield') {
+                    // shield usage logic
+                }
+                if (item === 'lightningBuster') {
+                    // lightningBuster usage logic
+                }
+            }
+        }
+
+        function castSpell(spell) {
+            if (mp >= spells[spell]) {
+                mp -= spells[spell];
+                if (spell === 'feuer') {
+                    // fire spell logic
+                }
+                if (spell === 'isen') {
+                    // ice spell logic
+                }
+                if (spell === 'grass') {
+                    // grass spell logic
+                }
+                if (spell === 'lightningBuster') {
+                    // lightningBuster spell logic
+                    if (gold >= lightningBusterCost) {
+                        gold -= lightningBusterCost;
+                        inventory.lightningBuster = true;
+                    } else {
+                        addChatMessage('ゴールドが不足しています！');
+                    }
+                }
             } else {
-                alert('ゴールドが足りません。');
+                addChatMessage('MPが足りません！');
             }
         }
 
-        function craftItem() {
-            if (inventory.wood && inventory.sword) {
-                inventory.sword = false;
-                inventory.wood = false;
-                inventory.shield = true;
-                alert('木材と剣を使って盾をクラフトしました!');
-                sendPlayerData();
-            } else {
-                alert('クラフトに必要なアイテムが足りません。');
+        function attack() {
+            if (battle.active && battle.playerTurn) {
+                if (battle.enemy) {
+                    battle.enemy.hp -= 10;
+                    battleLog.innerHTML += `<p>あなたは敵に攻撃しました。敵のHP: ${battle.enemy.hp}</p>`;
+                    if (battle.enemy.hp <= 0) {
+                        battleLog.innerHTML += '<p>敵を倒しました！</p>';
+                        battle.active = false;
+                        battle.enemy = null;
+                        battleScreen.style.display = 'none';
+                    } else {
+                        battle.playerTurn = false;
+                        setTimeout(() => {
+                            if (battle.enemy) {
+                                hp -= battle.enemy.damage;
+                                battleLog.innerHTML += `<p>敵が攻撃しました。あなたのHP: ${hp}</p>`;
+                                if (hp <= 0) {
+                                    battleLog.innerHTML += '<p>あなたは倒れました...</p>';
+                                    battle.active = false;
+                                    battleScreen.style.display = 'none';
+                                }
+                                battle.playerTurn = true;
+                            }
+                        }, 1000);
+                    }
+                }
             }
         }
 
-        function updateWeather() {
-            const time = new Date().getHours();
-            if (time >= 6 && time < 18) {
-                weather = '晴れ';
-            } else {
-                weather = '夜';
-            }
-            ctx.fillStyle = weather === '晴れ' ? 'rgba(255, 255, 0, 0.1)' : 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function openDialog(message) {
+            dialogContent.textContent = message;
+            dialog.style.display = 'block';
         }
 
-        function saveGame() {
-            localStorage.setItem('playerData', JSON.stringify({
-                x: x,
-                y: y,
-                hp: hp,
-                mp: mp,
-                gold: gold,
-                level: level,
-                exp: exp,
-                inventory: inventory,
-                spells: spells
-            }));
+        function closeDialog() {
+            dialog.style.display = 'none';
         }
 
-        function loadGame() {
-            const data = JSON.parse(localStorage.getItem('playerData'));
-            if (data) {
-                x = data.x;
-                y = data.y;
-                hp = data.hp;
-                mp = data.mp;
-                gold = data.gold;
-                level = data.level;
-                exp = data.exp;
-                inventory = data.inventory;
-                spells = data.spells;
+        function handleTouchStart(event) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+        }
+
+        function handleTouchMove(event) {
+            touchCurrentX = event.touches[0].clientX;
+            touchCurrentY = event.touches[0].clientY;
+            if (Math.abs(touchCurrentX - touchStartX) > 10 || Math.abs(touchCurrentY - touchStartY) > 10) {
+                moving = true;
+                joystickInner.style.left = `${touchCurrentX - joystick.offsetLeft - 25}px`;
+                joystickInner.style.top = `${touchCurrentY - joystick.offsetTop - 25}px`;
+                x += (touchCurrentX - touchStartX) / 10;
+                y += (touchCurrentY - touchStartY) / 10;
+                touchStartX = touchCurrentX;
+                touchStartY = touchCurrentY;
             }
         }
 
-        function updateLeaderboard(leaderboard) {
-            leaderboardList.innerHTML = '';
-            leaderboard.forEach(player => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${player.name} - レベル: ${player.level}, ゴールド: ${player.gold}`;
-                leaderboardList.appendChild(listItem);
-            });
+        function handleTouchEnd(event) {
+            moving = false;
+            joystickInner.style.left = '25px';
+            joystickInner.style.top = '25px';
         }
 
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'ArrowUp') y -= 5;
-            if (event.key === 'ArrowDown') y += 5;
-            if (event.key === 'ArrowLeft') x -= 5;
-            if (event.key === 'ArrowRight') x += 5;
-            sendPlayerData();
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer(x, y);
+            drawEnemies();
+            drawMerchants();
+            drawTrees();
+            drawNpcs();
+            drawSigns();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         });
 
         joystick.addEventListener('touchstart', handleTouchStart);
         joystick.addEventListener('touchmove', handleTouchMove);
         joystick.addEventListener('touchend', handleTouchEnd);
 
-        setInterval(updateGame, 1000 / 60);
-
-        loadGame();
-
-        window.addEventListener('beforeunload', saveGame);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') sendMessage();
+        });
     </script>
 </body>
 </html>
