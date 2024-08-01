@@ -392,10 +392,13 @@
             requestAnimationFrame(gameLoop);
         }
 
-        canvas.addEventListener('resize', () => {
+        function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-        });
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
         let touchStart = (event) => {
             touchStartX = event.touches[0].clientX;
