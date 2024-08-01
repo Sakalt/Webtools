@@ -13,6 +13,8 @@
         #chat { position: absolute; bottom: 10px; right: 10px; width: 300px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
         #chatMessages { height: 100px; overflow-y: scroll; margin-bottom: 10px; }
         #chatInput { width: calc(100% - 22px); }
+        #leaderboard { position: absolute; top: 10px; right: 10px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
+        #leaderboard ol { padding-left: 20px; }
     </style>
 </head>
 <body>
@@ -24,10 +26,18 @@
         <div class="item" onclick="useItem('sword')">⚔️</div>
         <div class="item" onclick="useItem('shield')">🛡️</div>
         <div class="item" onclick="useItem('wood')">🌳</div>
+        <div class="item" onclick="castSpell('feuer')">🔥</div>
+        <div class="item" onclick="castSpell('isen')">❄️</div>
+        <div class="item" onclick="castSpell('grass')">🌿</div>
+        <div class="item" onclick="useItem('mpPotion')">🧪</div>
     </div>
     <div id="chat">
         <div id="chatMessages"></div>
         <input type="text" id="chatInput" onkeydown="if(event.key === 'Enter') sendMessage()">
+    </div>
+    <div id="leaderboard">
+        <h3>ランキング</h3>
+        <ol id="leaderboardList"></ol>
     </div>
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -35,22 +45,24 @@
         const joystick = document.getElementById('joystick');
         const joystickInner = document.getElementById('joystickInner');
         const players = {};
-        const enemies = [{ id: 'enemy1', x: 100, y: 100, hp: 20, damage: 3, lv: 1 }];
+        const enemies = [{ id: 'enemy1', x: 100, y: 100, hp: 20, damage: 3, lv: 1 }, { id: 'enemy2', x: 150, y: 150, hp: 30, damage: 5, lv: 2 }];
         const merchants = [{ id: 'merchant1', x: 200, y: 200 }];
         const trees = [{ id: 'tree1', x: 300, y: 300 }];
-        const shopItems = { sword: 14, shield: 12 };
+        const shopItems = { sword: 14, shield: 12, mpPotion: 5 };
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
-        
+        const leaderboardList = document.getElementById('leaderboardList');
+
         let playerId = Math.random().toString(36).substring(2);
         let x = Math.random() * window.innerWidth;
         let y = Math.random() * window.innerHeight;
         let hp = 30;
+        let mp = 20;
         let gold = 0;
         let level = 1;
         let exp = 0;
-        let spells = { feuer: 5, isen: 7 };
-        let inventory = { sword: true, shield: false, wood: false };
+        let spells = { feuer: 5, isen: 7, grass: 6 };
+        let inventory = { sword: true, shield: false, wood: false, mpPotion: 1 };
         let touchStartX, touchStartY, touchCurrentX, touchCurrentY;
         let moving = false;
         let weather = '晴れ';
@@ -68,6 +80,7 @@
                         players[id] = data.players[id];
                     }
                 }
+                updateLeaderboard(data.leaderboard);
             } else if (data.type === 'chat') {
                 addChatMessage(data.message);
             }
@@ -164,6 +177,7 @@
                 x: x,
                 y: y,
                 hp: hp,
+                mp: mp,
                 gold: gold,
                 level: level,
                 exp: exp,
@@ -174,43 +188,51 @@
         }
 
         function useItem(item) {
-            if (inventory[item]) {
-                alert(item + ' を使用しました!');
-            } else {
-                alert(item + ' を持っていません。');
-            }
-        }
-
-        function attackEnemy(enemyId) {
-            const enemy = enemies.find(e => e.id === enemyId);
-            if (enemy) {
-                enemy.hp -= 2.7; // 素手ダメージ
-                if (enemy.hp <= 0) {
-                    gold += 5; // 敵を倒すとコインをドロップ
-                    exp += 10; // 経験値を獲得
-                    const index = enemies.indexOf(enemy);
-                    enemies.splice(index, 1);
-                    checkLevelUp();
-                }
+            if (item === 'mpPotion' && inventory.mpPotion > 0) {
+                mp += 10; // MPを回復
+                inventory.mpPotion--;
                 sendPlayerData();
             }
         }
 
-        function checkLevelUp() {
-            if (exp >= level * 10) {
-                level++;
-                hp += 10;
-                exp = 0;
-                alert('レベルアップしました！');
+        function castSpell(spell) {
+            if (mp >= spells[spell]) {
+                mp -= spells[spell]; // MPを消費
+                enemies.forEach(enemy => {
+                    const distance = Math.sqrt((enemy.x - x) ** 2 + (enemy.y - y) ** 2);
+                    if (distance < 100) {
+                        if (spell === 'feuer') {
+                            enemy.hp -= 10; // 火の呪文ダメージ
+                        } else if (spell === 'isen') {
+                            enemy.hp -= 7; // 氷の呪文ダメージ
+                            enemy.speed = 0.5; // 敵を遅くする効果
+                        } else if (spell === 'grass') {
+                            enemy.hp -= 8; // 草の呪文ダメージ
+                            enemy.poisoned = true; // 敵を毒状態にする効果
+                        }
+                        if (enemy.hp <= 0) {
+                            gold += 5; // 敵を倒すとコインをドロップ
+                            exp += 10; // 経験値を獲得
+                            const index = enemies.indexOf(enemy);
+                            enemies.splice(index, 1);
+                            checkLevelUp();
+                        }
+                    }
+                });
+                sendPlayerData();
+            } else {
+                alert('MPが足りません。');
             }
         }
 
-        function castSpell(spell) {
-            if (spells[spell]) {
-                alert(spell + ' の呪文を唱えました!');
-                spells[spell]--;
-            } else {
-                alert('呪文がありません。');
+        function checkLevelUp() {
+            const levelUpExp = level * 50;
+            if (exp >= levelUpExp) {
+                level++;
+                exp -= levelUpExp;
+                hp += 10; // レベルアップでHPを回復
+                alert('レベルアップしました!');
+                sendPlayerData();
             }
         }
 
@@ -270,6 +292,7 @@
                 x: x,
                 y: y,
                 hp: hp,
+                mp: mp,
                 gold: gold,
                 level: level,
                 exp: exp,
@@ -284,12 +307,22 @@
                 x = data.x;
                 y = data.y;
                 hp = data.hp;
+                mp = data.mp;
                 gold = data.gold;
                 level = data.level;
                 exp = data.exp;
                 inventory = data.inventory;
                 spells = data.spells;
             }
+        }
+
+        function updateLeaderboard(leaderboard) {
+            leaderboardList.innerHTML = '';
+            leaderboard.forEach(player => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${player.name} - レベル: ${player.level}, ゴールド: ${player.gold}`;
+                leaderboardList.appendChild(listItem);
+            });
         }
 
         window.addEventListener('keydown', (event) => {
