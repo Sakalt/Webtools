@@ -10,6 +10,9 @@
         #joystickInner { position: absolute; width: 50px; height: 50px; background-color: rgba(0, 0, 0, 0.5); border-radius: 50%; top: 25px; left: 25px; }
         #inventory { position: absolute; bottom: 140px; left: 20px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
         .item { display: inline-block; width: 40px; height: 40px; background-color: #ccc; border: 1px solid #333; margin: 5px; text-align: center; line-height: 40px; cursor: pointer; }
+        #chat { position: absolute; bottom: 10px; right: 10px; width: 300px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
+        #chatMessages { height: 100px; overflow-y: scroll; margin-bottom: 10px; }
+        #chatInput { width: calc(100% - 22px); }
     </style>
 </head>
 <body>
@@ -22,6 +25,10 @@
         <div class="item" onclick="useItem('shield')">🛡️</div>
         <div class="item" onclick="useItem('wood')">🌳</div>
     </div>
+    <div id="chat">
+        <div id="chatMessages"></div>
+        <input type="text" id="chatInput" onkeydown="if(event.key === 'Enter') sendMessage()">
+    </div>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -29,17 +36,25 @@
         const joystickInner = document.getElementById('joystickInner');
         const players = {};
         const enemies = [{ id: 'enemy1', x: 100, y: 100, hp: 20, damage: 3, lv: 1 }];
+        const merchants = [{ id: 'merchant1', x: 200, y: 200 }];
+        const trees = [{ id: 'tree1', x: 300, y: 300 }];
         const shopItems = { sword: 14, shield: 12 };
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
         
         let playerId = Math.random().toString(36).substring(2);
         let x = Math.random() * window.innerWidth;
         let y = Math.random() * window.innerHeight;
         let hp = 30;
         let gold = 0;
+        let level = 1;
+        let exp = 0;
+        let spells = { feuer: 5, isen: 7 };
         let inventory = { sword: true, shield: false, wood: false };
         let touchStartX, touchStartY, touchCurrentX, touchCurrentY;
         let moving = false;
-        
+        let weather = '晴れ';
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -53,6 +68,8 @@
                         players[id] = data.players[id];
                     }
                 }
+            } else if (data.type === 'chat') {
+                addChatMessage(data.message);
             }
         };
 
@@ -68,15 +85,48 @@
             });
         }
 
+        function drawMerchants() {
+            merchants.forEach(merchant => {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(merchant.x, merchant.y, 20, 20);
+            });
+        }
+
+        function drawTrees() {
+            trees.forEach(tree => {
+                ctx.fillStyle = 'brown';
+                ctx.fillRect(tree.x, tree.y, 20, 20);
+            });
+        }
+
         function updateGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawPlayer(x, y);
             drawEnemies();
+            drawMerchants();
+            drawTrees();
             for (const id in players) {
                 const player = players[id];
                 ctx.fillStyle = 'red';
                 ctx.fillRect(player.x, player.y, 20, 20);
             }
+            checkCollisions();
+            updateWeather();
+        }
+
+        function checkCollisions() {
+            enemies.forEach(enemy => {
+                const distance = Math.sqrt((enemy.x - x) ** 2 + (enemy.y - y) ** 2);
+                if (distance < 25) {
+                    hp -= enemy.damage; // 敵がプレイヤーを攻撃
+                    if (hp <= 0) {
+                        alert('ゲームオーバー');
+                        hp = 30;
+                        x = Math.random() * window.innerWidth;
+                        y = Math.random() * window.innerHeight;
+                    }
+                }
+            });
         }
 
         function handleTouchStart(event) {
@@ -115,7 +165,10 @@
                 y: y,
                 hp: hp,
                 gold: gold,
-                inventory: inventory
+                level: level,
+                exp: exp,
+                inventory: inventory,
+                weather: weather
             };
             socket.send(JSON.stringify(data));
         }
@@ -134,11 +187,48 @@
                 enemy.hp -= 2.7; // 素手ダメージ
                 if (enemy.hp <= 0) {
                     gold += 5; // 敵を倒すとコインをドロップ
+                    exp += 10; // 経験値を獲得
                     const index = enemies.indexOf(enemy);
                     enemies.splice(index, 1);
+                    checkLevelUp();
                 }
                 sendPlayerData();
             }
+        }
+
+        function checkLevelUp() {
+            if (exp >= level * 10) {
+                level++;
+                hp += 10;
+                exp = 0;
+                alert('レベルアップしました！');
+            }
+        }
+
+        function castSpell(spell) {
+            if (spells[spell]) {
+                alert(spell + ' の呪文を唱えました!');
+                spells[spell]--;
+            } else {
+                alert('呪文がありません。');
+            }
+        }
+
+        function addChatMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function sendMessage() {
+            const message = chatInput.value;
+            const data = {
+                type: 'chat',
+                message: playerId + ': ' + message
+            };
+            socket.send(JSON.stringify(data));
+            chatInput.value = '';
         }
 
         function buyItem(item) {
@@ -152,13 +242,39 @@
             }
         }
 
+        function craftItem() {
+            if (inventory.wood && inventory.sword) {
+                inventory.sword = false;
+                inventory.wood = false;
+                inventory.shield = true;
+                alert('木材と剣を使って盾をクラフトしました!');
+                sendPlayerData();
+            } else {
+                alert('クラフトに必要なアイテムが足りません。');
+            }
+        }
+
+        function updateWeather() {
+            const time = new Date().getHours();
+            if (time >= 6 && time < 18) {
+                weather = '晴れ';
+            } else {
+                weather = '夜';
+            }
+            ctx.fillStyle = weather === '晴れ' ? 'rgba(255, 255, 0, 0.1)' : 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
         function saveGame() {
             localStorage.setItem('playerData', JSON.stringify({
                 x: x,
                 y: y,
                 hp: hp,
                 gold: gold,
-                inventory: inventory
+                level: level,
+                exp: exp,
+                inventory: inventory,
+                spells: spells
             }));
         }
 
@@ -169,7 +285,10 @@
                 y = data.y;
                 hp = data.hp;
                 gold = data.gold;
+                level = data.level;
+                exp = data.exp;
                 inventory = data.inventory;
+                spells = data.spells;
             }
         }
 
