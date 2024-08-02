@@ -72,7 +72,7 @@
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
             <input id="speed" type="range" min="1000" max="27000" step="1000" value="5000">
-            <span id="speed-value">1秒</span>
+            <span id="speed-value">5秒</span>
         </div>
     </div>
 
@@ -133,7 +133,7 @@
         let lastUpdate = Date.now();
         let seasonTransitionProgress = 0;
         let updateInterval;
-        let speed = 1000; // 初期速度 (1秒ごと)
+        let speed = 5000; // 初期速度 (5秒ごと)
         let isRunning = false;
         let isReversing = false;
 
@@ -155,9 +155,6 @@
             const baseTemperature = Math.floor(Math.random() * (tempRange[1] - tempRange[0] + 1)) + tempRange[0];
             const changeRate = changeRates[season];
 
-            const centerX = width / 2;
-            const centerY = height / 2;
-
             function noise(x, y) {
                 return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
             }
@@ -178,7 +175,7 @@
                 }
             }
 
-            info.innerHTML = `年代: ${currentYear}年<br>季節: ${season}<br>温度: ${baseTemperature}°C`;
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.round(baseTemperature)}°C`;
         }
 
         function update() {
@@ -242,7 +239,8 @@
         document.getElementById('reverse-button').addEventListener('click', reverseAnimation);
         document.getElementById('speed').addEventListener('input', (e) => setSpeed(e.target.value));
 
-        startAnimation(); // 初期状態でアニメーションを開始
+        // 初期表示の更新
+        generateTemperatureMap();
     </script>
 </body>
 </html>
