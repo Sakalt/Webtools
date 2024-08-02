@@ -180,7 +180,7 @@
                 }
             }
 
-            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${baseTemperature}°C`;
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.round(baseTemperature)}°C`;
         }
 
         function update() {
