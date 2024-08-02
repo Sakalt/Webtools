@@ -180,7 +180,7 @@
                 }
             }
 
-            info.innerHTML = `年代: ${currentYear}年<br>季節: ${season}<br>温度: ${baseTemperature}°C`;
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${baseTemperature}°C`;
         }
 
         function update() {
@@ -193,7 +193,7 @@
 
                 if (isRunning) {
                     if (!isReversing) {
-                        seasonTransitionProgress += deltaTime / speed / (365.25); // 平均して1年を365.25日で区切り
+                        seasonTransitionProgress += deltaTime / speed / 365.25; // 平均して1年を365.25日で区切り
                         if (seasonTransitionProgress >= 1) {
                             seasonTransitionProgress = 0;
                             currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
@@ -202,7 +202,7 @@
                             }
                         }
                     } else {
-                        seasonTransitionProgress -= deltaTime / speed / (365.25);
+                        seasonTransitionProgress -= deltaTime / speed / 365.25;
                         if (seasonTransitionProgress <= 0) {
                             seasonTransitionProgress = 0;
                             currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
@@ -214,7 +214,9 @@
                 }
             }
 
-            requestAnimationFrame(update);
+            if (isRunning) {
+                requestAnimationFrame(update);
+            }
         }
 
         document.getElementById('start-button').addEventListener('click', () => {
