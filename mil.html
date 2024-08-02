@@ -74,8 +74,8 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="10" max="1000" step="10" value="50">
-            <span id="speed-value">0.05秒</span>
+            <input id="speed" type="range" min="1000" max="8000" step="1000" value="5000">
+            <span id="speed-value">5秒</span>
         </div>
     </div>
 
@@ -136,7 +136,7 @@
         let lastUpdate = Date.now();
         let seasonTransitionProgress = 0;
         let updateInterval;
-        let speed = 50; // 初期速度 (0.05秒ごと)
+        let speed = 5000; // 初期速度 (5秒ごと)
         let isRunning = false;
         let isReversing = false;
 
@@ -149,78 +149,79 @@
             return colors[0].color;
         }
 
-        function noise(x, y) {
-            return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
-        }
-
         function generateTemperatureMap() {
             canvas.width = width;
             canvas.height = height;
 
             const season = seasons[currentSeasonIndex];
             const tempRange = temperatures[season];
+            const baseTemperature = Math.floor(Math.random() * (tempRange[1] - tempRange[0] + 1)) + tempRange[0];
             const changeRate = changeRates[season];
-
-            ctx.clearRect(0, 0, width, height);
 
             const centerX = width / 2;
             const centerY = height / 2;
 
+            function noise(x, y) {
+                return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
+            }
+
+            ctx.clearRect(0, 0, width, height);
+
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < height; y++) {
-                    const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                    const latitudeFactor = 1 - Math.abs((y - centerY) / centerY);
+                    // 緯度による基準温度計算
+                    const latitudeFactor = (height - y) / height;
+                    let baseTempAtPoint = baseTemperature * latitudeFactor;
 
-                    // アフリカ・インド地域の温度調整
-                    const africaDistance = Math.sqrt((x - width * 0.5) ** 2 + (y - height * 0.55) ** 2);
-                    const isInAfrica = africaDistance < 150;
-                    // シベリア地域の温度調整
-                    const sibiriaDistance = Math.sqrt((x - width * 0.5) ** 2 + (y - height * 0.25) ** 2);
-                    const isInSibiria = sibiriaDistance < 150;
+                    // 中心に近いほど温かくするために、基準温度に中心からの距離を反映
+                    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                    const maxDistance = Math.sqrt(Math.pow(centerX, 2) + Math.pow(centerY, 2));
+                    const centerTemperatureFactor = 1 - (distance / maxDistance);
 
-                    // 基本温度の計算
-                    let baseTemperature = 30 - distanceFromCenter / 10; // 中心が温かく、外側が寒い
-                    if (isInAfrica) {
-                        baseTemperature += 10; // アフリカ地域を暖かく
-                    } else if (isInSibiria) {
-                        baseTemperature -= 10; // シベリア地域を寒く
-                    }
-                    
-                    baseTemperature += noise(x, y); // ノイズの追加
+                    // 温度の変動を加える
+                    baseTempAtPoint += centerTemperatureFactor * 20; // 中心がより温かくなるように
 
-                    // 温度範囲の調整
-                    const minTemp = tempRange[0];
-                    const maxTemp = tempRange[1];
-                    const clampedTemperature = Math.max(minTemp, Math.min(maxTemp, baseTemperature));
-                    const color = getTemperatureColor(clampedTemperature);
+                    const randomVariation = Math.random() * 5 - 2.5;
+                    const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
+                    const color = getTemperatureColor(tempChange);
 
                     ctx.fillStyle = color;
                     ctx.fillRect(x, y, 1, 1);
                 }
             }
+
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${baseTemperature.toFixed(2)}°C`;
         }
 
         function update() {
             const now = Date.now();
-            const elapsed = now - lastUpdate;
-            const transitionSpeed = 1000 / speed;
+            const deltaTime = now - lastUpdate;
+            lastUpdate = now;
 
-            if (elapsed >= transitionSpeed) {
-                lastUpdate = now;
-
-                // 季節の変化
-                seasonTransitionProgress += changeRates[seasons[currentSeasonIndex]] * (elapsed / transitionSpeed);
-                if (seasonTransitionProgress >= 1) {
-                    seasonTransitionProgress = 0;
-                    currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
-                    info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: 20°C`;
-                }
-
+            if (deltaTime >= speed) {
                 generateTemperatureMap();
-            }
 
-            if (isRunning) {
-                requestAnimationFrame(update);
+                if (isRunning) {
+                    if (!isReversing) {
+                        seasonTransitionProgress += deltaTime / speed / 365; // 1年を365日で区切り
+                        if (seasonTransitionProgress >= 1) {
+                            seasonTransitionProgress = 0;
+                            currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
+                            if (currentSeasonIndex === 0) {
+                                currentYear++;
+                            }
+                        }
+                    } else {
+                        seasonTransitionProgress -= deltaTime / speed / 365;
+                        if (seasonTransitionProgress <= 0) {
+                            seasonTransitionProgress = 0;
+                            currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
+                            if (currentSeasonIndex === seasons.length - 1) {
+                                currentYear--;
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -228,31 +229,32 @@
             if (!isRunning) {
                 isRunning = true;
                 lastUpdate = Date.now();
-                update();
+                updateInterval = setInterval(update, 100);
             }
         }
 
         function stopAnimation() {
-            isRunning = false;
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(updateInterval);
+            }
         }
 
         function reverseAnimation() {
             isReversing = !isReversing;
-            if (isReversing) {
-                // 逆戻り処理を追加する場合はここにコードを追加
-            }
+        }
+
+        function setSpeed(value) {
+            speed = parseInt(value);
+            document.getElementById('speed-value').textContent = (speed / 1000) + '秒';
         }
 
         document.getElementById('start-button').addEventListener('click', startAnimation);
         document.getElementById('stop-button').addEventListener('click', stopAnimation);
         document.getElementById('reverse-button').addEventListener('click', reverseAnimation);
-        document.getElementById('speed').addEventListener('input', (e) => {
-            speed = parseInt(e.target.value);
-            document.getElementById('speed-value').textContent = `${(speed / 1000).toFixed(2)}秒`;
-        });
+        document.getElementById('speed').addEventListener('input', (e) => setSpeed(e.target.value));
 
-        // 初期表示
-        generateTemperatureMap();
+        startAnimation(); // 初期状態でアニメーションを開始
     </script>
 </body>
 </html>
