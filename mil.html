@@ -174,6 +174,7 @@
                     const sibiriaDistance = Math.sqrt((x - width * 0.5) ** 2 + (y - height * 0.25) ** 2);
                     const isInSibiria = sibiriaDistance < 150;
 
+                    // 基本温度の計算
                     let baseTemperature = (latitudeFactor * 30 - 10); // 中心が温かく、外側が寒い
                     if (isInAfrica) {
                         baseTemperature += 10; // アフリカ地域を暖かく
@@ -181,13 +182,19 @@
                         baseTemperature -= 10; // シベリア地域を寒く
                     }
 
-                    const tempChange = baseTemperature * changeRate;
+                    // ランダムノイズの追加
+                    const randomNoise = Math.random() * 5 - 2.5; // -2.5°C から +2.5°C の範囲
+
+                    // 温度変化の適用
+                    const tempChange = baseTemperature * changeRate + randomNoise;
                     const color = getTemperatureColor(tempChange);
 
                     ctx.fillStyle = color;
                     ctx.fillRect(x, y, 1, 1);
                 }
             }
+
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.floor(Math.random() * 40) - 10}°C`;
         }
 
         function update() {
