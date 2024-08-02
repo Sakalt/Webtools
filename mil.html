@@ -74,7 +74,7 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="25" max="600" step="1000" value="27">
+            <input id="speed" type="range" min="1000" max="8000" step="1000" value="5000">
             <span id="speed-value">5秒</span>
         </div>
     </div>
@@ -114,14 +114,7 @@
             { temp: 34, color: 'rgba(200, 0, 0, 0.5)' },
             { temp: 36, color: 'rgba(150, 0, 0, 0.5)' },
             { temp: 38, color: 'rgba(100, 0, 0, 0.5)' },
-            { temp: 40, color: 'rgba(50, 0, 0, 0.5)' },
-            { temp: 42, color: 'rgba(255, 100, 100, 0.5)' },
-            { temp: 44, color: 'rgba(255, 50, 50, 0.5)' },
-            { temp: 46, color: 'rgba(255, 0, 0, 0.5)' },
-            { temp: 48, color: 'rgba(200, 0, 0, 0.5)' },
-            { temp: 50, color: 'rgba(150, 0, 0, 0.5)' },
-            { temp: 52, color: 'rgba(100, 0, 0, 0.5)' },
-            { temp: 54, color: 'rgba(50, 0, 0, 0.5)' }
+            { temp: 40, color: 'rgba(50, 0, 0, 0.5)' }
         ];
 
         const changeRates = {
@@ -162,27 +155,35 @@
             const centerY = height / 2;
 
             function noise(x, y) {
-                return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
+                const noiseIntensity = 0.5; // ノイズの強さ
+                return (Math.sin(x * 0.05) + Math.cos(y * 0.05)) * noiseIntensity;
             }
 
             ctx.clearRect(0, 0, width, height);
 
+            const temperatureData = [];
             for (let x = 0; x < width; x++) {
+                temperatureData[x] = [];
                 for (let y = 0; y < height; y++) {
-                    // 緯度による基準温度計算
                     const latitudeFactor = (height - y) / height;
                     let baseTempAtPoint = baseTemperature * latitudeFactor;
 
-                    // 中心に近いほど温かくするために、基準温度に中心からの距離を反映
                     const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
                     const maxDistance = Math.sqrt(Math.pow(centerX, 2) + Math.pow(centerY, 2));
                     const centerTemperatureFactor = 1 - (distance / maxDistance);
 
-                    // 温度の変動を加える
-                    baseTempAtPoint += centerTemperatureFactor * 20; // 中心がより温かくなるように
+                    baseTempAtPoint += centerTemperatureFactor * 20;
 
                     const randomVariation = Math.random() * 5 - 2.5;
                     const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
+
+                    temperatureData[x][y] = tempChange;
+                }
+            }
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    const tempChange = temperatureData[x][y];
                     const color = getTemperatureColor(tempChange);
 
                     ctx.fillStyle = color;
@@ -203,7 +204,7 @@
 
                 if (isRunning) {
                     if (!isReversing) {
-                        seasonTransitionProgress += deltaTime / speed / 365; // 1年を365日で区切り
+                        seasonTransitionProgress += deltaTime / speed / 365;
                         if (seasonTransitionProgress >= 1) {
                             seasonTransitionProgress = 0;
                             currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
