@@ -25,6 +25,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            z-index: 0; /* 地図を最背面に */
         }
         #temperature {
             position: absolute;
@@ -33,6 +34,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
+            z-index: 1; /* 温度マップを地図の上に表示 */
         }
         #info {
             position: absolute;
@@ -41,11 +43,13 @@
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
             border-radius: 5px;
+            z-index: 2; /* 情報を最上に表示 */
         }
         #controls {
             position: absolute;
             bottom: 10px;
             left: 10px;
+            z-index: 2; /* コントロールを最上に表示 */
         }
         #controls button, #controls input {
             background: rgba(0, 0, 0, 0.7);
@@ -71,8 +75,8 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="1000" max="8000" step="1000" value="4000">
-            <span id="speed-value">4秒</span>
+            <input id="speed" type="range" min="100" max="8000" step="100" value="1000">
+            <span id="speed-value">0.1秒</span>
         </div>
     </div>
 
@@ -93,32 +97,32 @@
 
         const colors = [
             { temp: -40, color: 'rgba(0, 0, 255, 0.5)' },
-            { temp: -30, color: 'rgba(0, 0, 200, 0.5)' },
-            { temp: -20, color: 'rgba(0, 0, 150, 0.5)' },
-            { temp: -10, color: 'rgba(0, 0, 100, 0.5)' },
-            { temp: 0, color: 'rgba(0, 255, 255, 0.5)' },
-            { temp: 10, color: 'rgba(0, 200, 200, 0.5)' },
-            { temp: 20, color: 'rgba(0, 150, 150, 0.5)' },
-            { temp: 30, color: 'rgba(0, 100, 100, 0.5)' },
-            { temp: 40, color: 'rgba(144, 238, 144, 0.5)' },
-            { temp: 50, color: 'rgba(0, 255, 0, 0.5)' },
-            { temp: 60, color: 'rgba(100, 255, 100, 0.5)' },
-            { temp: 70, color: 'rgba(150, 255, 150, 0.5)' },
-            { temp: 80, color: 'rgba(255, 255, 0, 0.5)' },
-            { temp: 90, color: 'rgba(255, 200, 0, 0.5)' },
-            { temp: 100, color: 'rgba(255, 165, 0, 0.5)' },
-            { temp: 110, color: 'rgba(255, 0, 0, 0.5)' },
-            { temp: 120, color: 'rgba(200, 0, 0, 0.5)' },
-            { temp: 130, color: 'rgba(150, 0, 0, 0.5)' },
-            { temp: 140, color: 'rgba(100, 0, 0, 0.5)' },
-            { temp: 150, color: 'rgba(50, 0, 0, 0.5)' },
-            { temp: 160, color: 'rgba(255, 100, 100, 0.5)' },
-            { temp: 170, color: 'rgba(255, 50, 50, 0.5)' },
-            { temp: 180, color: 'rgba(255, 0, 0, 0.5)' },
-            { temp: 190, color: 'rgba(200, 0, 0, 0.5)' },
-            { temp: 200, color: 'rgba(150, 0, 0, 0.5)' },
-            { temp: 210, color: 'rgba(100, 0, 0, 0.5)' },
-            { temp: 220, color: 'rgba(50, 0, 0, 0.5)' }
+            { temp: -35, color: 'rgba(0, 0, 200, 0.5)' },
+            { temp: -30, color: 'rgba(0, 0, 150, 0.5)' },
+            { temp: -25, color: 'rgba(0, 0, 100, 0.5)' },
+            { temp: -20, color: 'rgba(0, 255, 255, 0.5)' },
+            { temp: -15, color: 'rgba(0, 200, 200, 0.5)' },
+            { temp: -10, color: 'rgba(0, 150, 150, 0.5)' },
+            { temp: -5, color: 'rgba(0, 100, 100, 0.5)' },
+            { temp: 0, color: 'rgba(144, 238, 144, 0.5)' },
+            { temp: 5, color: 'rgba(0, 255, 0, 0.5)' },
+            { temp: 10, color: 'rgba(100, 255, 100, 0.5)' },
+            { temp: 15, color: 'rgba(150, 255, 150, 0.5)' },
+            { temp: 20, color: 'rgba(255, 255, 0, 0.5)' },
+            { temp: 25, color: 'rgba(255, 200, 0, 0.5)' },
+            { temp: 30, color: 'rgba(255, 165, 0, 0.5)' },
+            { temp: 35, color: 'rgba(255, 0, 0, 0.5)' },
+            { temp: 40, color: 'rgba(200, 0, 0, 0.5)' },
+            { temp: 45, color: 'rgba(150, 0, 0, 0.5)' },
+            { temp: 50, color: 'rgba(100, 0, 0, 0.5)' },
+            { temp: 55, color: 'rgba(50, 0, 0, 0.5)' },
+            { temp: 60, color: 'rgba(255, 100, 100, 0.5)' },
+            { temp: 65, color: 'rgba(255, 50, 50, 0.5)' },
+            { temp: 70, color: 'rgba(255, 0, 0, 0.5)' },
+            { temp: 75, color: 'rgba(200, 0, 0, 0.5)' },
+            { temp: 80, color: 'rgba(150, 0, 0, 0.5)' },
+            { temp: 85, color: 'rgba(100, 0, 0, 0.5)' },
+            { temp: 90, color: 'rgba(50, 0, 0, 0.5)' }
         ];
 
         const changeRates = {
@@ -133,11 +137,11 @@
         let lastUpdate = Date.now();
         let seasonTransitionProgress = 0;
         let updateInterval;
-        let speed = 4000; // 初期速度 (4秒ごと)
+        let speed = 1000; // 初期速度 (1秒ごと)
         let isRunning = false;
         let isReversing = false;
 
-        function getColorForTemp(temp) {
+        function getTemperatureColor(temp) {
             for (let i = colors.length - 1; i >= 0; i--) {
                 if (temp >= colors[i].temp) {
                     return colors[i].color;
@@ -146,84 +150,81 @@
             return colors[0].color;
         }
 
-        function drawTemperatureMap() {
+        function generateTemperatureMap() {
             canvas.width = width;
             canvas.height = height;
 
             const season = seasons[currentSeasonIndex];
             const tempRange = temperatures[season];
-            const baseTemperature = tempRange[0] + (tempRange[1] - tempRange[0]) * (1 - seasonTransitionProgress);
+            const baseTemperature = Math.floor(Math.random() * (tempRange[1] - tempRange[0] + 1)) + tempRange[0];
             const changeRate = changeRates[season];
 
             const centerX = width / 2;
             const centerY = height / 2;
-            const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
+
+            function noise(x, y) {
+                return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
+            }
 
             ctx.clearRect(0, 0, width, height);
 
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < height; y++) {
-                    const dx = x - centerX;
-                    const dy = y - centerY;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const normalizedDistance = distance / maxDistance;
-
-                    // 赤道付近を最も暑く、極地方を最も寒く
                     const latitudeFactor = (height - y) / height;
-                    const baseTempAtPoint = baseTemperature * (1 - latitudeFactor) + (baseTemperature * latitudeFactor);
-                    const temp = baseTempAtPoint * changeRate + (Math.random() - 0.5) * 5;
-                    const color = getColorForTemp(temp);
+                    const baseTempAtPoint = baseTemperature * latitudeFactor;
+
+                    // 温度変化を加える
+                    const randomVariation = Math.random() * 10 - 5;
+                    const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
+                    const color = getTemperatureColor(tempChange);
 
                     ctx.fillStyle = color;
                     ctx.fillRect(x, y, 1, 1);
                 }
             }
+
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${season}<br>温度: ${baseTemperature}°C`;
         }
 
-        function updateTemperatureMap() {
+        function update() {
             const now = Date.now();
-            const deltaTime = now - lastUpdate;
-
-            if (deltaTime > speed) {
+            const delta = now - lastUpdate;
+            if (delta >= speed) {
                 lastUpdate = now;
+
                 if (isRunning) {
-                    seasonTransitionProgress += (isReversing ? -1 : 1) * (deltaTime / speed);
-                    if (seasonTransitionProgress >= 1) {
-                        seasonTransitionProgress = 0;
-                        currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
-                        if (currentSeasonIndex === 0) {
+                    if (isReversing) {
+                        seasonTransitionProgress -= delta / speed;
+                        if (seasonTransitionProgress <= 0) {
+                            seasonTransitionProgress = 0;
+                            currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
+                            currentYear--;
+                        }
+                    } else {
+                        seasonTransitionProgress += delta / speed;
+                        if (seasonTransitionProgress >= 1) {
+                            seasonTransitionProgress = 1;
+                            currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
                             currentYear++;
                         }
                     }
-                    if (seasonTransitionProgress <= 0) {
-                        seasonTransitionProgress = 0;
-                        currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
-                        if (currentSeasonIndex === seasons.length - 1) {
-                            currentYear--;
-                        }
-                    }
-                    info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.round(temperatures[seasons[currentSeasonIndex]][0] + (temperatures[seasons[currentSeasonIndex]][1] - temperatures[seasons[currentSeasonIndex]][0]) * (1 - seasonTransitionProgress))}°C`;
-                    drawTemperatureMap();
+
+                    generateTemperatureMap();
+                    info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.floor(seasonTransitionProgress * 40) - 40}°C`;
                 }
             }
         }
 
-        function setSpeed(newSpeed) {
-            speed = newSpeed;
-            document.getElementById('speed-value').innerText = `${Math.round(speed / 1000)}秒`;
-            clearInterval(updateInterval);
-            updateInterval = setInterval(updateTemperatureMap, 100);
-        }
-
         document.getElementById('start-button').addEventListener('click', () => {
-            isRunning = true;
-            if (!updateInterval) {
-                updateInterval = setInterval(updateTemperatureMap, 100);
+            if (!isRunning) {
+                isRunning = true;
+                updateInterval = setInterval(update, 100);
             }
         });
 
         document.getElementById('stop-button').addEventListener('click', () => {
             isRunning = false;
+            clearInterval(updateInterval);
         });
 
         document.getElementById('reverse-button').addEventListener('click', () => {
@@ -231,10 +232,13 @@
         });
 
         document.getElementById('speed').addEventListener('input', (event) => {
-            setSpeed(parseInt(event.target.value));
+            speed = parseInt(event.target.value);
+            document.getElementById('speed-value').textContent = `${(speed / 1000).toFixed(1)}秒`;
         });
 
-        setSpeed(4000); // 初期速度設定
+        window.addEventListener('load', () => {
+            generateTemperatureMap();
+        });
     </script>
 </body>
 </html>
