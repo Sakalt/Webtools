@@ -71,8 +71,8 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="1000" max="27000" step="1000" value="5000">
-            <span id="speed-value">5秒</span>
+            <input id="speed" type="range" min="500" max="5000" step="500" value="1000">
+            <span id="speed-value">1秒</span>
         </div>
     </div>
 
@@ -133,7 +133,7 @@
         let lastUpdate = Date.now();
         let seasonTransitionProgress = 0;
         let updateInterval;
-        let speed = 5000; // 初期速度 (5秒ごと)
+        let speed = 1000; // 初期速度 (1秒ごと)
         let isRunning = false;
         let isReversing = false;
 
@@ -155,15 +155,20 @@
             const baseTemperature = Math.floor(Math.random() * (tempRange[1] - tempRange[0] + 1)) + tempRange[0];
             const changeRate = changeRates[season];
 
+            const centerX = width / 2;
+            const centerY = height / 2;
+
             function noise(x, y) {
-                return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
+                return (Math.sin(x * 0.05) + Math.cos(y * 0.05)) * 5;
             }
 
             ctx.clearRect(0, 0, width, height);
 
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < height; y++) {
-                    const latitudeFactor = (height - y) / height;
+                    const distToCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
+                    const latitudeFactor = 1 - (distToCenter / maxDist); // 中心からの距離に基づくファクター
                     const baseTempAtPoint = baseTemperature * latitudeFactor;
 
                     const randomVariation = Math.random() * 10 - 5;
@@ -175,7 +180,7 @@
                 }
             }
 
-            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.round(baseTemperature)}°C`;
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${season}<br>温度: ${baseTemperature}°C`;
         }
 
         function update() {
@@ -188,7 +193,7 @@
 
                 if (isRunning) {
                     if (!isReversing) {
-                        seasonTransitionProgress += deltaTime / speed / 365; // 1年を365日で区切り
+                        seasonTransitionProgress += deltaTime / speed / (365.25); // 平均して1年を365.25日で区切り
                         if (seasonTransitionProgress >= 1) {
                             seasonTransitionProgress = 0;
                             currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
@@ -197,7 +202,7 @@
                             }
                         }
                     } else {
-                        seasonTransitionProgress -= deltaTime / speed / 365;
+                        seasonTransitionProgress -= deltaTime / speed / (365.25);
                         if (seasonTransitionProgress <= 0) {
                             seasonTransitionProgress = 0;
                             currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
@@ -208,39 +213,34 @@
                     }
                 }
             }
+
+            requestAnimationFrame(update);
         }
 
-        function startAnimation() {
+        document.getElementById('start-button').addEventListener('click', () => {
             if (!isRunning) {
                 isRunning = true;
                 lastUpdate = Date.now();
-                updateInterval = setInterval(update, 100);
+                requestAnimationFrame(update);
             }
-        }
+        });
 
-        function stopAnimation() {
-            if (isRunning) {
-                isRunning = false;
-                clearInterval(updateInterval);
-            }
-        }
+        document.getElementById('stop-button').addEventListener('click', () => {
+            isRunning = false;
+        });
 
-        function reverseAnimation() {
+        document.getElementById('reverse-button').addEventListener('click', () => {
             isReversing = !isReversing;
-        }
+        });
 
-        function setSpeed(value) {
-            speed = parseInt(value);
-            document.getElementById('speed-value').textContent = (speed / 1000) + '秒';
-        }
+        document.getElementById('speed').addEventListener('input', (event) => {
+            speed = parseInt(event.target.value);
+            document.getElementById('speed-value').textContent = `${(speed / 1000).toFixed(1)}秒`;
+        });
 
-        document.getElementById('start-button').addEventListener('click', startAnimation);
-        document.getElementById('stop-button').addEventListener('click', stopAnimation);
-        document.getElementById('reverse-button').addEventListener('click', reverseAnimation);
-        document.getElementById('speed').addEventListener('input', (e) => setSpeed(e.target.value));
-
-        // 初期表示の更新
-        generateTemperatureMap();
+        // 初期設定
+        document.getElementById('speed').value = speed;
+        document.getElementById('speed-value').textContent = `${(speed / 1000).toFixed(1)}秒`;
     </script>
 </body>
 </html>
