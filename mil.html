@@ -74,8 +74,8 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="1000" max="20000" step="1000" value="5000">
-            <span id="speed-value">5秒</span>
+            <input id="speed" type="range" min="60" max="2000" step="10" value="500">
+            <span id="speed-value">0.5秒</span>
         </div>
     </div>
 
@@ -136,13 +136,9 @@
         let lastUpdate = Date.now();
         let seasonTransitionProgress = 0;
         let updateInterval;
-        let speed = 5000; // 初期速度 (5秒ごと)
+        let speed = 500; // 初期速度 (0.5秒ごと)
         let isRunning = false;
         let isReversing = false;
-
-        // アフリカとインドを熱く、シベリアとニュージーランドを寒くするための位置
-        const africaRegion = { x: width / 2, y: height / 1.5, radius: width / 5 };
-        const sibiriaRegion = { x: width / 2, y: height / 7, radius: width / 5 };
 
         function getTemperatureColor(temp) {
             for (let i = colors.length - 1; i >= 0; i--) {
@@ -159,85 +155,82 @@
 
             const season = seasons[currentSeasonIndex];
             const tempRange = temperatures[season];
-            const baseTemperature = (tempRange[0] + tempRange[1]) / 2; // 平均温度
             const changeRate = changeRates[season];
-
-            function noise(x, y) {
-                return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
-            }
 
             ctx.clearRect(0, 0, width, height);
 
+            const centerX = width / 2;
+            const centerY = height / 2;
+
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < height; y++) {
-                    const latitudeFactor = (height - y) / height;
-                    const baseTempAtPoint = baseTemperature * latitudeFactor;
+                    const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    const latitudeFactor = 1 - Math.abs((y - centerY) / centerY);
 
-                    // 温度変化の追加
-                    const randomVariation = Math.random() * 5 - 2.5;
-                    const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
+                    // アフリカ・インド地域の温度調整
+                    const africaDistance = Math.sqrt((x - width * 0.5) ** 2 + (y - height * 0.55) ** 2);
+                    const isInAfrica = africaDistance < 150;
+                    // シベリア地域の温度調整
+                    const sibiriaDistance = Math.sqrt((x - width * 0.5) ** 2 + (y - height * 0.25) ** 2);
+                    const isInSibiria = sibiriaDistance < 150;
 
-                    // アフリカとインドを熱く、シベリアとニュージーランドを寒くする調整
-                    const distanceFromAfrica = Math.sqrt((x - africaRegion.x) ** 2 + (y - africaRegion.y) ** 2);
-                    const distanceFromSibiria = Math.sqrt((x - sibiriaRegion.x) ** 2 + (y - sibiriaRegion.y) ** 2);
+                    let baseTemperature = (latitudeFactor * 30 - 10); // 中心が温かく、外側が寒い
+                    if (isInAfrica) {
+                        baseTemperature += 10; // アフリカ地域を暖かく
+                    } else if (isInSibiria) {
+                        baseTemperature -= 10; // シベリア地域を寒く
+                    }
 
-                    const africaEffect = Math.max(0, africaRegion.radius - distanceFromAfrica) / africaRegion.radius * 15;
-                    const sibiriaEffect = Math.max(0, sibiriaRegion.radius - distanceFromSibiria) / sibiriaRegion.radius * -15;
+                    const tempChange = baseTemperature * changeRate;
+                    const color = getTemperatureColor(tempChange);
 
-                    const finalTemp = tempChange + africaEffect + sibiriaEffect;
-                    ctx.fillStyle = getTemperatureColor(finalTemp);
+                    ctx.fillStyle = color;
                     ctx.fillRect(x, y, 1, 1);
                 }
             }
         }
 
         function update() {
-            if (!isRunning) return;
-
             const now = Date.now();
             const elapsed = now - lastUpdate;
 
-            if (elapsed >= speed) {
+            if (elapsed > speed) {
                 lastUpdate = now;
+                generateTemperatureMap();
 
-                if (isReversing) {
-                    currentYear = currentYear === 2028 ? 2028 + 1 : currentYear - 1;
-                } else {
-                    currentYear = currentYear + 1;
-                }
+                seasonTransitionProgress += isReversing ? -0.01 : 0.01;
 
-                if (currentYear > 2040) {
-                    currentYear = 2028;
-                } else if (currentYear < 2028) {
-                    currentYear = 2040;
-                }
-
-                seasonTransitionProgress += (elapsed / speed) * changeRates[seasons[currentSeasonIndex]];
                 if (seasonTransitionProgress >= 1) {
                     seasonTransitionProgress = 0;
                     currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
+                    info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.floor(Math.random() * 40) - 10}°C`;
+
+                    if (!isReversing) {
+                        currentYear++;
+                    }
+                } else if (seasonTransitionProgress <= 0) {
+                    seasonTransitionProgress = 1;
+                    currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
+                    info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.floor(Math.random() * 40) - 10}°C`;
+
+                    if (isReversing) {
+                        currentYear--;
+                    }
                 }
-
-                info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${Math.round(generateTemperatureMap())}°C`;
             }
-
-            generateTemperatureMap();
-            requestAnimationFrame(update);
         }
 
         function startAnimation() {
             if (!isRunning) {
+                updateInterval = setInterval(update, 10);
                 isRunning = true;
-                lastUpdate = Date.now();
-                updateInterval = setInterval(update, speed);
-                update();
             }
         }
 
         function stopAnimation() {
             if (isRunning) {
-                isRunning = false;
                 clearInterval(updateInterval);
+                isRunning = false;
             }
         }
 
@@ -245,36 +238,22 @@
             isReversing = !isReversing;
         }
 
-        function setSpeed(value) {
-            speed = parseInt(value);
-            document.getElementById('speed-value').textContent = `${Math.round(speed / 1000)}秒`;
-            if (isRunning) {
-                if (updateInterval) clearInterval(updateInterval);
-                updateInterval = setInterval(update, speed);
-            }
-        }
-
-        function getMousePosition(event) {
-            const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            return { x, y };
-        }
-
-        canvas.addEventListener('click', (event) => {
-            const { x, y } = getMousePosition(event);
-            const imageData = ctx.getImageData(x, y, 1, 1).data;
-            const color = `rgba(${imageData[0]}, ${imageData[1]}, ${imageData[2]}, ${imageData[3] / 255})`;
-            const temp = colors.find(c => c.color === color)?.temp || '不明';
-            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>地点の温度: ${temp}°C`;
-        });
-
         document.getElementById('start-button').addEventListener('click', startAnimation);
         document.getElementById('stop-button').addEventListener('click', stopAnimation);
         document.getElementById('reverse-button').addEventListener('click', reverseAnimation);
-        document.getElementById('speed').addEventListener('input', (e) => setSpeed(e.target.value));
 
-        generateTemperatureMap();
+        document.getElementById('speed').addEventListener('input', function() {
+            speed = parseInt(this.value);
+            document.getElementById('speed-value').innerText = (speed / 1000).toFixed(1) + '秒';
+            if (isRunning) {
+                stopAnimation();
+                startAnimation();
+            }
+        });
+
+        window.onload = function() {
+            generateTemperatureMap();
+        };
     </script>
 </body>
 </html>
