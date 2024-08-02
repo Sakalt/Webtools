@@ -159,7 +159,7 @@
 
             const season = seasons[currentSeasonIndex];
             const tempRange = temperatures[season];
-            const baseTemperature = Math.floor(Math.random() * (tempRange[1] - tempRange[0] + 1)) + tempRange[0];
+            const baseTemperature = (tempRange[0] + tempRange[1]) / 2; // 平均温度
             const changeRate = changeRates[season];
 
             function noise(x, y) {
@@ -174,7 +174,7 @@
                     const baseTempAtPoint = baseTemperature * latitudeFactor;
 
                     // 温度変化の追加
-                    const randomVariation = Math.random() * 10 - 5;
+                    const randomVariation = Math.random() * 5 - 2.5;
                     const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
 
                     // アフリカとインドを熱く、シベリアとニュージーランドを寒くする調整
@@ -225,30 +225,54 @@
             requestAnimationFrame(update);
         }
 
-        document.getElementById('start-button').addEventListener('click', () => {
-            isRunning = true;
-            if (updateInterval) clearInterval(updateInterval);
-            updateInterval = setInterval(update, speed);
-            update();
-        });
+        function startAnimation() {
+            if (!isRunning) {
+                isRunning = true;
+                lastUpdate = Date.now();
+                updateInterval = setInterval(update, speed);
+                update();
+            }
+        }
 
-        document.getElementById('stop-button').addEventListener('click', () => {
-            isRunning = false;
-            if (updateInterval) clearInterval(updateInterval);
-        });
+        function stopAnimation() {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(updateInterval);
+            }
+        }
 
-        document.getElementById('reverse-button').addEventListener('click', () => {
+        function reverseAnimation() {
             isReversing = !isReversing;
-        });
+        }
 
-        document.getElementById('speed').addEventListener('input', (event) => {
-            speed = parseInt(event.target.value);
+        function setSpeed(value) {
+            speed = parseInt(value);
             document.getElementById('speed-value').textContent = `${Math.round(speed / 1000)}秒`;
             if (isRunning) {
                 if (updateInterval) clearInterval(updateInterval);
                 updateInterval = setInterval(update, speed);
             }
+        }
+
+        function getMousePosition(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            return { x, y };
+        }
+
+        canvas.addEventListener('click', (event) => {
+            const { x, y } = getMousePosition(event);
+            const imageData = ctx.getImageData(x, y, 1, 1).data;
+            const color = `rgba(${imageData[0]}, ${imageData[1]}, ${imageData[2]}, ${imageData[3] / 255})`;
+            const temp = colors.find(c => c.color === color)?.temp || '不明';
+            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>地点の温度: ${temp}°C`;
         });
+
+        document.getElementById('start-button').addEventListener('click', startAnimation);
+        document.getElementById('stop-button').addEventListener('click', stopAnimation);
+        document.getElementById('reverse-button').addEventListener('click', reverseAnimation);
+        document.getElementById('speed').addEventListener('input', (e) => setSpeed(e.target.value));
 
         generateTemperatureMap();
     </script>
