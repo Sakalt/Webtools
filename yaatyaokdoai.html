@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赤と黒のゲーム</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(6, 50px);
+            grid-template-rows: repeat(6, 50px);
+            gap: 5px;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            background-color: black;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .red {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="board"></div>
+
+    <script>
+        const board = document.querySelector('.board');
+        const cells = [];
+        const size = 6;
+
+        // ボードを初期化
+        for (let i = 0; i < size * size; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.addEventListener('click', () => flipCells(i));
+            board.appendChild(cell);
+            cells.push(cell);
+        }
+
+        // 初期状態の赤のセルをランダムに設定
+        function initializeBoard() {
+            const initialReds = Math.floor(Math.random() * 13) + 6; // 6-18個の赤いセル
+            for (let i = 0; i < initialReds; i++) {
+                const randomIndex = Math.floor(Math.random() * (size * size));
+                cells[randomIndex].classList.add('red');
+            }
+        }
+
+        // 指定されたセルとその周囲のランダムな4つのセルを裏返す
+        function flipCells(index) {
+            const positions = [
+                -1, 1, -size, size,
+                -size - 1, -size + 1, size - 1, size + 1
+            ];
+            const flipIndices = [index];
+            while (flipIndices.length < 5) {
+                const randomPos = positions[Math.floor(Math.random() * positions.length)];
+                const newIndex = index + randomPos;
+                if (newIndex >= 0 && newIndex < size * size && !flipIndices.includes(newIndex)) {
+                    flipIndices.push(newIndex);
+                }
+            }
+            flipIndices.forEach(i => cells[i].classList.toggle('red'));
+            checkWin();
+        }
+
+        // 全てのセルが赤かどうかをチェック
+        function checkWin() {
+            if (cells.every(cell => cell.classList.contains('red'))) {
+                alert('勝ちました！');
+            }
+        }
+
+        initializeBoard();
+    </script>
+</body>
+</html>
