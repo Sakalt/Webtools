@@ -162,6 +162,7 @@
             ctx.clearRect(0, 0, width, height);
 
             const stripeHeight = 20; // ストライプの高さ
+            let previousYOffset = 0;
 
             for (let y = 0; y < height; y += stripeHeight) {
                 const tempAtStripe = baseTemperature * (1 - y / height) * changeRate;
@@ -172,8 +173,15 @@
                 ctx.moveTo(0, y);
 
                 for (let x = 0; x < width; x += 10) {
-                    const offset = Math.sin((x / width) * Math.PI * 2) * 10; // 波の変動
-                    ctx.lineTo(x, y + offset);
+                    const offset = Math.random() * stripeHeight - stripeHeight / 2; // ランダムな変動
+                    const newY = y + offset;
+                    ctx.lineTo(x, newY);
+
+                    if (x === 0) {
+                        previousYOffset = newY - y; // 隙間を防ぐためのオフセット
+                    } else if (x === width - 10) {
+                        ctx.lineTo(width, y + previousYOffset); // 隙間を防ぐために最後のx位置にオフセットを適用
+                    }
                 }
 
                 ctx.lineTo(width, y + stripeHeight);
