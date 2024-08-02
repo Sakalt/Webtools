@@ -175,12 +175,20 @@
                     const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
                     const tempFactor = 1 - (distToCenter / maxDist);
 
+                    // アフリカ付近の中心を調整 (中心から少し離れた距離を考慮)
+                    const africaCenterX = width * 0.4; // アフリカを中心にしたい位置
+                    const africaCenterY = height * 0.5;
+                    const distToAfrica = Math.sqrt((x - africaCenterX) ** 2 + (y - africaCenterY) ** 2);
+                    const africaFactor = 1 - (distToAfrica / (maxDist * 0.6));
+
                     const latitudeFactor = (height - y) / height;
-                    const baseTempAtPoint = baseTemperature * latitudeFactor * tempFactor;
+                    const baseTempAtPoint = baseTemperature * latitudeFactor;
 
                     const randomVariation = Math.random() * 10 - 5;
                     const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
-                    const color = getTemperatureColor(tempChange);
+                    const adjustedTemp = tempChange * (tempFactor + africaFactor); // アフリカ付近を強調
+
+                    const color = getTemperatureColor(adjustedTemp);
 
                     ctx.fillStyle = color;
                     ctx.fillRect(x, y, 1, 1);
