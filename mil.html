@@ -33,6 +33,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
+            z-index: 1; /* 背景の温度マップ */
         }
         #info {
             position: absolute;
@@ -41,11 +42,13 @@
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
             border-radius: 5px;
+            z-index: 2; /* 情報表示 */
         }
         #controls {
             position: absolute;
             bottom: 10px;
             left: 10px;
+            z-index: 2; /* コントロールボタン */
         }
         #controls button, #controls input {
             background: rgba(0, 0, 0, 0.7);
@@ -71,13 +74,12 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="100" max="800" step="1000" value="100">
-            <span id="speed-value">0.1秒</span>
+            <input id="speed" type="range" min="1000" max="20000" step="1000" value="5000">
+            <span id="speed-value">5秒</span>
         </div>
     </div>
 
     <script>
-        const info = document.getElementById('info');
         const canvas = document.getElementById('temperature');
         const ctx = canvas.getContext('2d');
         const width = 842;
@@ -92,136 +94,125 @@
         };
 
         const colors = [
-            { temp: -10, color: 'rgba(0, 0, 255, 0.5)' },
-            { temp: 0, color: 'rgba(173, 216, 230, 0.5)' },
-            { temp: 10, color: 'rgba(144, 238, 144, 0.5)' },
-            { temp: 20, color: 'rgba(0, 255, 0, 0.5)' },
-            { temp: 30, color: 'rgba(255, 255, 0, 0.5)' },
-            { temp: 40, color: 'rgba(255, 165, 0, 0.5)' },
-            { temp: 50, color: 'rgba(255, 0, 0, 0.5)' }
+            { minTemp: -35, maxTemp: -32.5, color: 'rgba(0, 0, 139, 0.5)' }, // -35 to -32.5°C (Dark Blue)
+            { minTemp: -32.5, maxTemp: -30, color: 'rgba(0, 0, 255, 0.5)' }, // -32.5 to -30°C (Blue)
+            { minTemp: -30, maxTemp: -27.5, color: 'rgba(0, 191, 255, 0.5)' }, // -30 to -27.5°C (Deep Sky Blue)
+            { minTemp: -27.5, maxTemp: -25, color: 'rgba(0, 255, 255, 0.5)' }, // -27.5 to -25°C (Cyan)
+            { minTemp: -25, maxTemp: -22.5, color: 'rgba(173, 216, 230, 0.5)' }, // -25 to -22.5°C (Light Blue)
+            { minTemp: -22.5, maxTemp: -20, color: 'rgba(135, 206, 250, 0.5)' }, // -22.5 to -20°C (Sky Blue)
+            { minTemp: -20, maxTemp: -17.5, color: 'rgba(176, 224, 230, 0.5)' }, // -20 to -17.5°C (Powder Blue)
+            { minTemp: -17.5, maxTemp: -15, color: 'rgba(240, 248, 255, 0.5)' }, // -17.5 to -15°C (Alice Blue)
+            { minTemp: -15, maxTemp: -12.5, color: 'rgba(224, 255, 255, 0.5)' }, // -15 to -12.5°C (Light Cyan)
+            { minTemp: -12.5, maxTemp: -10, color: 'rgba(0, 255, 255, 0.5)' }, // -12.5 to -10°C (Cyan)
+            { minTemp: -10, maxTemp: -7.5, color: 'rgba(0, 255, 127, 0.5)' }, // -10 to -7.5°C (Spring Green)
+            { minTemp: -7.5, maxTemp: -5, color: 'rgba(0, 255, 0, 0.5)' }, // -7.5 to -5°C (Lime)
+            { minTemp: -5, maxTemp: -2.5, color: 'rgba(50, 205, 50, 0.5)' }, // -5 to -2.5°C (Lime Green)
+            { minTemp: -2.5, maxTemp: 0, color: 'rgba(34, 139, 34, 0.5)' }, // -2.5 to 0°C (Forest Green)
+            { minTemp: 0, maxTemp: 2.5, color: 'rgba(124, 252, 0, 0.5)' }, // 0 to 2.5°C (Lawn Green)
+            { minTemp: 2.5, maxTemp: 5, color: 'rgba(50, 205, 50, 0.5)' }, // 2.5 to 5°C (Lime Green)
+            { minTemp: 5, maxTemp: 7.5, color: 'rgba(144, 238, 144, 0.5)' }, // 5 to 7.5°C (Light Green)
+            { minTemp: 7.5, maxTemp: 10, color: 'rgba(0, 255, 0, 0.5)' }, // 7.5 to 10°C (Green)
+            { minTemp: 10, maxTemp: 12.5, color: 'rgba(173, 255, 47, 0.5)' }, // 10 to 12.5°C (Green Yellow)
+            { minTemp: 12.5, maxTemp: 15, color: 'rgba(255, 215, 0, 0.5)' }, // 12.5 to 15°C (Gold)
+            { minTemp: 15, maxTemp: 17.5, color: 'rgba(255, 165, 0, 0.5)' }, // 15 to 17.5°C (Orange)
+            { minTemp: 17.5, maxTemp: 20, color: 'rgba(255, 69, 0, 0.5)' }, // 17.5 to 20°C (Red Orange)
+            { minTemp: 20, maxTemp: 22.5, color: 'rgba(255, 0, 0, 0.5)' }, // 20 to 22.5°C (Red)
+            { minTemp: 22.5, maxTemp: 25, color: 'rgba(255, 0, 0, 0.5)' }, // 22.5 to 25°C (Red)
+            { minTemp: 25, maxTemp: 27.5, color: 'rgba(255, 20, 147, 0.5)' }, // 25 to 27.5°C (Deep Pink)
+            { minTemp: 27.5, maxTemp: 30, color: 'rgba(255, 105, 180, 0.5)' }, // 27.5 to 30°C (Hot Pink)
+            { minTemp: 30, maxTemp: 32.5, color: 'rgba(255, 99, 71, 0.5)' }, // 30 to 32.5°C (Tomato)
+            { minTemp: 32.5, maxTemp: 35, color: 'rgba(255, 69, 0, 0.5)' }, // 32.5 to 35°C (Red Orange)
+            { minTemp: 35, maxTemp: 37.5, color: 'rgba(255, 0, 0, 0.5)' }, // 35 to 37.5°C (Red)
+            { minTemp: 37.5, maxTemp: 40, color: 'rgba(255, 0, 0, 0.5)' }  // 37.5 to 40°C (Red)
         ];
 
-        const changeRates = {
-            春: 0.8,
-            夏: 1.5,
-            秋: 1.1,
-            冬: 0.6
-        };
-
-        let currentSeasonIndex = 0;
-        let currentYear = 2028;
-        let lastUpdate = Date.now();
-        let seasonTransitionProgress = 0;
-        let updateInterval;
-        let speed = 5000; // 初期速度 (5秒ごと)
-        let isRunning = false;
-        let isReversing = false;
-
-        function getTemperatureColor(temp) {
-            for (let i = colors.length - 1; i >= 0; i--) {
-                if (temp >= colors[i].temp) {
+        function getColorForTemp(temp) {
+            for (let i = 0; i < colors.length; i++) {
+                if (temp >= colors[i].minTemp && temp < colors[i].maxTemp) {
                     return colors[i].color;
                 }
             }
-            return colors[0].color;
+            return 'rgba(0, 0, 0, 0)'; // Default to transparent if out of range
         }
 
-        function generateTemperatureMap() {
-            canvas.width = width;
-            canvas.height = height;
-
-            const season = seasons[currentSeasonIndex];
-            const tempRange = temperatures[season];
-            const baseTemperature = Math.floor(Math.random() * (tempRange[1] - tempRange[0] + 1)) + tempRange[0];
-            const changeRate = changeRates[season];
+        function drawTemperatureMap(year, season) {
+            ctx.clearRect(0, 0, width, height);
 
             const centerX = width / 2;
             const centerY = height / 2;
-
-            ctx.clearRect(0, 0, width, height);
+            const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
 
             for (let x = 0; x < width; x++) {
                 for (let y = 0; y < height; y++) {
-                    const latitudeFactor = 1 - Math.abs(y - centerY) / (height / 2); // 中心からの緯度に基づく温度変化
-                    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-                    const radius = Math.min(centerX, centerY);
-                    const distanceFactor = 1 - (distance / radius);
-                    const baseTempAtPoint = baseTemperature * latitudeFactor * distanceFactor;
+                    const dx = x - centerX;
+                    const dy = y - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const noise = (Math.random() - 0.5) * 5; // ノイズの範囲
+                    const baseTemp = temperatures[season][0] + (temperatures[season][1] - temperatures[season][0]) * (1 - (distance / maxDistance));
+                    const temp = baseTemp + noise;
 
-                    const randomVariation = Math.random() * 5 - 2.5; // ノイズを追加
-                    const tempChange = baseTempAtPoint * changeRate + randomVariation;
-                    const color = getTemperatureColor(tempChange);
-
-                    ctx.fillStyle = color;
+                    ctx.fillStyle = getColorForTemp(temp);
                     ctx.fillRect(x, y, 1, 1);
                 }
             }
-
-            info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${baseTemperature.toFixed(2)}°C`;
         }
 
-        function update() {
-            const now = Date.now();
-            const deltaTime = now - lastUpdate;
-            lastUpdate = now;
+        let year = 2028;
+        let seasonIndex = 0;
+        let animationFrameId;
+        let isAnimating = false;
+        let speed = 5000; // default speed in milliseconds
 
-            if (deltaTime >= speed) {
-                generateTemperatureMap();
+        document.getElementById('start-button').addEventListener('click', () => {
+            if (!isAnimating) {
+                isAnimating = true;
+                animate();
+            }
+        });
 
-                if (isRunning) {
-                    if (!isReversing) {
-                        seasonTransitionProgress += deltaTime / speed / 365;
-                        if (seasonTransitionProgress >= 1) {
-                            seasonTransitionProgress = 0;
-                            currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
-                            if (currentSeasonIndex === 0) {
-                                currentYear++;
-                            }
-                        }
-                    } else {
-                        seasonTransitionProgress -= deltaTime / speed / 365;
-                        if (seasonTransitionProgress <= 0) {
-                            seasonTransitionProgress = 0;
-                            currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
-                            if (currentSeasonIndex === seasons.length - 1) {
-                                currentYear--;
-                            }
-                        }
-                    }
+        document.getElementById('stop-button').addEventListener('click', () => {
+            if (isAnimating) {
+                cancelAnimationFrame(animationFrameId);
+                isAnimating = false;
+            }
+        });
+
+        document.getElementById('reverse-button').addEventListener('click', () => {
+            if (isAnimating) {
+                cancelAnimationFrame(animationFrameId);
+                isAnimating = false;
+            }
+            year--;
+            if (year < 2028) {
+                year = 2028;
+            }
+            updateInfo();
+            drawTemperatureMap(year, seasons[seasonIndex]);
+        });
+
+        document.getElementById('speed').addEventListener('input', (event) => {
+            speed = parseInt(event.target.value, 10);
+            document.getElementById('speed-value').textContent = `${Math.round(speed / 1000)}秒`;
+        });
+
+        function animate() {
+            drawTemperatureMap(year, seasons[seasonIndex]);
+            updateInfo();
+            animationFrameId = setTimeout(() => {
+                year++;
+                if (year > 2038) {
+                    year = 2028;
                 }
-            }
+                seasonIndex = (seasonIndex + 1) % seasons.length;
+                animate();
+            }, speed);
         }
 
-        function startAnimation() {
-            if (!isRunning) {
-                isRunning = true;
-                lastUpdate = Date.now();
-                updateInterval = setInterval(update, 100);
-            }
+        function updateInfo() {
+            document.getElementById('info').innerHTML = `年代: ${year}年<br>季節: ${seasons[seasonIndex]}<br>温度: ${temperatures[seasons[seasonIndex]][0]}~${temperatures[seasons[seasonIndex]][1]}°C`;
         }
 
-        function stopAnimation() {
-            if (isRunning) {
-                isRunning = false;
-                clearInterval(updateInterval);
-            }
-        }
-
-        function reverseAnimation() {
-            isReversing = !isReversing;
-        }
-
-        function setSpeed(value) {
-            speed = parseInt(value);
-            document.getElementById('speed-value').textContent = (speed / 1000) + '秒';
-        }
-
-        document.getElementById('start-button').addEventListener('click', startAnimation);
-        document.getElementById('stop-button').addEventListener('click', stopAnimation);
-        document.getElementById('reverse-button').addEventListener('click', reverseAnimation);
-        document.getElementById('speed').addEventListener('input', (e) => setSpeed(e.target.value));
-
-        startAnimation(); // 初期状態でアニメーションを開始
+        drawTemperatureMap(year, seasons[seasonIndex]);
     </script>
 </body>
 </html>
