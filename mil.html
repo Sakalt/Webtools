@@ -134,7 +134,7 @@
         let seasonTransitionProgress = 0;
         let updateInterval;
         let speed = 1000; // 初期速度 (1秒ごと)
-        let isRunning = true;
+        let isRunning = false;
         let isReversing = false;
 
         function getTemperatureColor(temp) {
@@ -191,7 +191,7 @@
 
                 if (isRunning) {
                     if (!isReversing) {
-                        seasonTransitionProgress += deltaTime / speed;
+                        seasonTransitionProgress += deltaTime / speed / 365; // 1年を365日で区切り
                         if (seasonTransitionProgress >= 1) {
                             seasonTransitionProgress = 0;
                             currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
@@ -200,7 +200,7 @@
                             }
                         }
                     } else {
-                        seasonTransitionProgress -= deltaTime / speed;
+                        seasonTransitionProgress -= deltaTime / speed / 365;
                         if (seasonTransitionProgress <= 0) {
                             seasonTransitionProgress = 0;
                             currentSeasonIndex = (currentSeasonIndex - 1 + seasons.length) % seasons.length;
