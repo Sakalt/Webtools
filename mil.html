@@ -74,7 +74,7 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="500" max="5000" step="500" value="1000">
+            <input id="speed" type="range" min="50" max="2000" step="250" value="1000">
             <span id="speed-value">1秒</span>
         </div>
     </div>
@@ -171,8 +171,10 @@
                 for (let y = 0; y < height; y++) {
                     const distToCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
                     const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
-                    const latitudeFactor = 1 - (distToCenter / maxDist); // 中心からの距離に基づくファクター
-                    const baseTempAtPoint = baseTemperature * latitudeFactor;
+                    const tempFactor = 1 - (distToCenter / maxDist);
+
+                    const latitudeFactor = (height - y) / height;
+                    const baseTempAtPoint = baseTemperature * latitudeFactor * tempFactor;
 
                     const randomVariation = Math.random() * 10 - 5;
                     const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
