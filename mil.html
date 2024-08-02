@@ -137,6 +137,15 @@
         let isRunning = true;
         let isReversing = false;
 
+        function getTemperatureColor(temp) {
+            for (let i = colors.length - 1; i >= 0; i--) {
+                if (temp >= colors[i].temp) {
+                    return colors[i].color;
+                }
+            }
+            return colors[0].color;
+        }
+
         function generateTemperatureMap() {
             canvas.width = width;
             canvas.height = height;
