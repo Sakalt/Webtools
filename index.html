@@ -1,121 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ルーレット</title>
+    <title>ルーレットサイト</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-        }
-        .container {
             text-align: center;
+            padding: 20px;
         }
-        input[type="color"] {
-            margin: 0 10px;
+        #roulette {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+        }
+        .slice {
+            width: 150px;
+            height: 150px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 100% 100%;
+            clip-path: polygon(100% 0, 100% 100%, 0 100%);
+        }
+        #arrow {
+            margin-top: 20px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>ルーレット</h1>
-        <div>
-            <label for="colors">色数 (3-6):</label>
-            <input type="number" id="colors" min="3" max="6" value="3">
-        </div>
-        <div id="colorInputs">
-            <label for="color1">色1:</label>
-            <input type="color" id="color1" value="#FF0000">
-            <label for="color2">色2:</label>
-            <input type="color" id="color2" value="#00FF00">
-            <label for="color3">色3:</label>
-            <input type="color" id="color3" value="#0000FF">
-            <label for="color4">色4:</label>
-            <input type="color" id="color4" value="#FFFF00">
-            <label for="color5">色5:</label>
-            <input type="color" id="color5" value="#FF00FF">
-            <label for="color6">色6:</label>
-            <input type="color" id="color6" value="#00FFFF">
-        </div>
-        <div>
-            <label for="items">ルーレット項目 (カンマ区切り):</label>
-            <input type="text" id="items" placeholder="項目1,項目2,項目3">
-        </div>
-        <button onclick="spin()">回す</button>
-        <button onclick="saveData()">保存</button>
-        <button onclick="loadData()">読み込む</button>
-        <div id="result"></div>
-    </div>
-    <script>
-        document.getElementById('colors').addEventListener('input', updateColorInputs);
-        updateColorInputs();
+    <h1>ルーレットサイト</h1>
+    <label for="numColors">項目数を選択してください（3-6）:</label>
+    <input type="number" id="numColors" min="3" max="6" value="3"><br><br>
+    <label for="entryText">項目を入力してください:</label>
+    <input type="text" id="entryText"><br><br>
+    <label for="colorPicker">色を選択してください:</label>
+    <input type="color" id="colorPicker" value="#ff0000"><br><br>
+    <button onclick="addEntry()">項目を追加</button><br><br>
+    <button onclick="spin()">ルーレットを回す</button><br><br>
+    <button onclick="saveRoulette()">ルーレットを保存</button><br><br>
+    <label for="savedRoulettes">保存されたルーレットを選択:</label>
+    <select id="savedRoulettes" onchange="loadRoulette()"></select><br><br>
+    <div id="roulette"></div>
+    <img id="arrow" src="https://cdn-icons-png.flaticon.com/512/32/32395.png" alt="Arrow" width="50px">
+    <div id="result"></div>
 
-        function updateColorInputs() {
-            const colorCount = document.getElementById('colors').value;
-            const colorInputs = document.querySelectorAll('[id^="color"]');
-            
-            colorInputs.forEach((input, index) => {
-                if (index < colorCount) {
-                    input.parentElement.style.display = 'inline-block';
-                } else {
-                    input.parentElement.style.display = 'none';
-                }
-            });
+    <script>
+        let entries = [];
+        let angle = 0;
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            loadSavedRoulettes();
+        });
+
+        function addEntry() {
+            const entryText = document.getElementById('entryText').value;
+            const colorPicker = document.getElementById('colorPicker').value;
+            const numColors = document.getElementById('numColors').value;
+
+            if (entries.length < numColors && entryText) {
+                entries.push({ text: entryText, color: colorPicker });
+                drawRoulette();
+            } else {
+                alert('項目数の上限に達しました、または入力が空です。');
+            }
+        }
+
+        function drawRoulette() {
+            const roulette = document.getElementById('roulette');
+            roulette.innerHTML = '';
+            const sliceAngle = 360 / entries.length;
+            for (let i = 0; i < entries.length; i++) {
+                const slice = document.createElement('div');
+                slice.classList.add('slice');
+                slice.style.backgroundColor = entries[i].color;
+                slice.style.transform = `rotate(${sliceAngle * i}deg) skewY(-${90 - sliceAngle}deg)`;
+                roulette.appendChild(slice);
+            }
         }
 
         function spin() {
-            const colorCount = document.getElementById('colors').value;
-            const colors = [];
-            
-            for (let i = 1; i <= colorCount; i++) {
-                colors.push(document.getElementById(`color${i}`).value);
-            }
+            const roulette = document.getElementById('roulette');
+            const resultDiv = document.getElementById('result');
+            angle += Math.random() * 360 + 360 * 3; // Spin for at least 3 full turns
+            roulette.style.transition = 'transform 4s ease-out';
+            roulette.style.transform = `rotate(${angle}deg)`;
 
-            const items = document.getElementById('items').value.split(',').map(item => item.trim());
-            const randomItem = items[Math.floor(Math.random() * items.length)];
-            document.getElementById('result').innerHTML = `選ばれた項目: ${randomItem}`;
+            setTimeout(() => {
+                const selectedIndex = Math.floor((angle % 360) / (360 / entries.length));
+                const selectedEntry = entries[entries.length - 1 - selectedIndex];
+                resultDiv.textContent = `${selectedEntry.text}が当たりました！`;
+            }, 4000); // Wait for the spinning to stop
         }
 
-        function saveData() {
-            const colorCount = document.getElementById('colors').value;
-            const colors = [];
-            
-            for (let i = 1; i <= colorCount; i++) {
-                colors.push(document.getElementById(`color${i}`).value);
+        function saveRoulette() {
+            const rouletteName = prompt("ルーレットの名前を入力してください:");
+            if (rouletteName) {
+                const savedRoulettes = JSON.parse(localStorage.getItem('roulettes') || '[]');
+                savedRoulettes.push({ name: rouletteName, entries });
+                localStorage.setItem('roulettes', JSON.stringify(savedRoulettes));
+                loadSavedRoulettes();
             }
-            
-            const items = document.getElementById('items').value;
-
-            const data = {
-                colorCount: colorCount,
-                colors: colors,
-                items: items
-            };
-
-            localStorage.setItem('rouletteData', JSON.stringify(data));
-            alert('データが保存されました。');
         }
 
-        function loadData() {
-            const data = JSON.parse(localStorage.getItem('rouletteData'));
+        function loadSavedRoulettes() {
+            const savedRoulettes = JSON.parse(localStorage.getItem('roulettes') || '[]');
+            const savedRoulettesSelect = document.getElementById('savedRoulettes');
+            savedRoulettesSelect.innerHTML = '';
+            savedRoulettes.forEach((roulette, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = roulette.name;
+                savedRoulettesSelect.appendChild(option);
+            });
+        }
 
-            if (data) {
-                document.getElementById('colors').value = data.colorCount;
-                updateColorInputs();
-
-                data.colors.forEach((color, index) => {
-                    document.getElementById(`color${index + 1}`).value = color;
-                });
-
-                document.getElementById('items').value = data.items;
-                alert('データが読み込まれました。');
-            } else {
-                alert('保存されたデータがありません。');
+        function loadRoulette() {
+            const savedRoulettes = JSON.parse(localStorage.getItem('roulettes') || '[]');
+            const selectedRouletteIndex = document.getElementById('savedRoulettes').value;
+            if (selectedRouletteIndex !== '') {
+                entries = savedRoulettes[selectedRouletteIndex].entries;
+                drawRoulette();
             }
         }
     </script>
