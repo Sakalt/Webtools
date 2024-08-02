@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>未来世界温度観測ツール</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #282c34;
+            color: white;
+            margin: 0;
+        }
+        #map-container {
+            position: relative;
+            width: 842px;
+            height: 595px;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #temperature {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+        }
+        #stop-button {
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #stop-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <img id="map" src="sekai.jfif" alt="世界地図">
+        <canvas id="temperature"></canvas>
+        <div id="info">季節: 春<br>温度: 20°C</div>
+        <div id="controls">
+            <button id="stop-button">停止</button>
+        </div>
+    </div>
+
+    <script>
+        const info = document.getElementById('info');
+        const canvas = document.getElementById('temperature');
+        const ctx = canvas.getContext('2d');
+        const width = 842;
+        const height = 595;
+
+        // 季節ごとの温度範囲
+        const seasons = ['春', '夏', '秋', '冬'];
+        const temperatures = {
+            春: [10, 20],
+            夏: [20, 30],
+            秋: [10, 20],
+            冬: [-10, 10]
+        };
+
+        // 色を温度に対応させる（16段階）
+        const colors = [
+            { temp: -10, color: 'rgba(0, 0, 255, 0.5)' }, // 最も低温（青）
+            { temp: -5, color: 'rgba(0, 0, 200, 0.5)' },
+            { temp: 0, color: 'rgba(0, 0, 150, 0.5)' }, // 青みがかった水色
+            { temp: 5, color: 'rgba(0, 0, 100, 0.5)' },
+            { temp: 10, color: 'rgba(0, 255, 255, 0.5)' }, // 水色
+            { temp: 12, color: 'rgba(0, 200, 200, 0.5)' },
+            { temp: 14, color: 'rgba(0, 150, 150, 0.5)' },
+            { temp: 16, color: 'rgba(0, 100, 100, 0.5)' },
+            { temp: 18, color: 'rgba(144, 238, 144, 0.5)' }, // 黄緑
+            { temp: 20, color: 'rgba(0, 255, 0, 0.5)' }, // 緑
+            { temp: 22, color: 'rgba(100, 255, 100, 0.5)' },
+            { temp: 24, color: 'rgba(150, 255, 150, 0.5)' },
+            { temp: 26, color: 'rgba(255, 255, 0, 0.5)' }, // 黄色
+            { temp: 28, color: 'rgba(255, 200, 0, 0.5)' },
+            { temp: 30, color: 'rgba(255, 165, 0, 0.5)' }, // オレンジ色
+            { temp: 32, color: 'rgba(255, 0, 0, 0.5)' }  // 最も高温（朱色）
+        ];
+
+        function getTemperatureColor(temp) {
+            for (let i = colors.length - 1; i >= 0; i--) {
+                if (temp >= colors[i].temp) {
+                    return colors[i].color;
+                }
+            }
+            return colors[0].color;
+        }
+
+        // 季節ごとの変化率
+        const changeRates = {
+            春: 0.8,
+            夏: 1.5,
+            秋: 1.1,
+            冬: 0.6
+        };
+
+        let currentSeasonIndex = 0;
+        let lastUpdate = Date.now();
+        let seasonTransitionProgress = 0;
+        let updateInterval = setInterval(generateTemperatureMap, 1000);
+
+        function generateTemperatureMap() {
+            canvas.width = width;
+            canvas.height = height;
+
+            const season = seasons[currentSeasonIndex];
+            const tempRange = temperatures[season];
+            const baseTemperature = Math.floor(Math.random() * (tempRange[1] - tempRange[0] + 1)) + tempRange[0];
+            const changeRate = changeRates[season];
+
+            // 中心から外側に向かって温度を変化させる
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // ノイズを追加するための関数
+            function noise(x, y) {
+                // 簡易的なノイズ
+                return (Math.sin(x * 0.1) + Math.cos(y * 0.1)) * 5;
+            }
+
+            ctx.clearRect(0, 0, width, height);
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    // 高さによって温度を決定
+                    const heightFactor = (height - y) / height;
+                    const baseTempAtPoint = baseTemperature * heightFactor;
+
+                    // ランダムなグニャグニャ変化を追加
+                    const randomVariation = Math.random() * 10 - 5;
+                    const tempChange = baseTempAtPoint * changeRate + noise(x, y) + randomVariation;
+                    const color = getTemperatureColor(tempChange);
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+
+            info.innerHTML = `季節: ${season}<br>温度: ${baseTemperature}°C`;
+
+            // 季節の変化
+            const now = Date.now();
+            const elapsed = now - lastUpdate;
+            seasonTransitionProgress += (elapsed / 1000) * 0.1;
+            if (seasonTransitionProgress >= 1) {
+                seasonTransitionProgress = 0;
+                currentSeasonIndex = (currentSeasonIndex + 1) % seasons.length;
+                lastUpdate = now;
+            }
+        }
+
+        // 停止ボタンの処理
+        document.getElementById('stop-button').addEventListener('click', () => {
+            clearInterval(updateInterval);
+        });
+
+        // クリック位置の温度を表示する機能
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // 高さによって温度を決定
+            const heightFactor = (height - y) / height;
+            const baseTemperature = Math.floor(Math.random() * (temperatures[seasons[currentSeasonIndex]][1] - temperatures[seasons[currentSeasonIndex]][0] + 1)) + temperatures[seasons[currentSeasonIndex]][0];
+            const tempAtPoint = baseTemperature * heightFactor;
+
+            info.innerHTML = `クリック位置: (${x}, ${y})<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${tempAtPoint.toFixed(1)}°C`;
+        });
+    </script>
+</body>
+</html>
