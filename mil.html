@@ -75,8 +75,8 @@
             <button id="stop-button">停止</button>
             <button id="reverse-button">逆戻り</button>
             <label for="speed">速度:</label>
-            <input id="speed" type="range" min="100" max="2000" step="100" value="500">
-            <span id="speed-value">0.5秒</span>
+            <input id="speed" type="range" min="50" max="2000" step="50" value="200">
+            <span id="speed-value">0.2秒</span>
         </div>
     </div>
 
@@ -127,7 +127,7 @@
         let lastUpdate = Date.now();
         let seasonTransitionProgress = 0;
         let updateInterval;
-        let speed = 500; // 初期速度 (0.5秒ごと)
+        let speed = 200; // 初期速度 (0.2秒ごと)
         let isRunning = false;
         let isReversing = false;
 
@@ -159,9 +159,20 @@
             for (let y = 0; y < height; y += stripeHeight) {
                 const tempAtStripe = baseTemperature * (1 - y / height) * changeRate;
                 const color = getTemperatureColor(tempAtStripe);
-                
+
                 ctx.fillStyle = color;
-                ctx.fillRect(0, y, width, stripeHeight); // 横のストライプとして塗りつぶす
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                
+                for (let x = 0; x < width; x += 10) {
+                    const offset = Math.sin((x / width) * Math.PI * 2) * 10; // 波の変動
+                    ctx.lineTo(x, y + offset);
+                }
+
+                ctx.lineTo(width, y + stripeHeight);
+                ctx.lineTo(0, y + stripeHeight);
+                ctx.closePath();
+                ctx.fill();
             }
 
             info.innerHTML = `年代: ${currentYear}年<br>季節: ${seasons[currentSeasonIndex]}<br>温度: ${baseTemperature}°C`;
