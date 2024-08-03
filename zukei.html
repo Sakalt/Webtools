@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星形描画</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: white;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <label for="n">頂点の数 (n): </label>
+        <input type="number" id="n" value="5" min="3" max="50">
+        <label for="m">ステップ数 (m): </label>
+        <input type="number" id="m" value="2" min="1" max="25">
+        <button onclick="startDrawing()">描画</button>
+    </div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <script>
+        function getRainbowColor(step, totalSteps) {
+            const h = (step / totalSteps) * 360;
+            return `hsl(${h}, 100%, 50%)`;
+        }
+
+        function drawStar(ctx, n, m, centerX, centerY, radius) {
+            let angle = (2 * Math.PI) / n;
+            let points = [];
+            for (let i = 0; i < n; i++) {
+                let x = centerX + radius * Math.cos(i * angle);
+                let y = centerY + radius * Math.sin(i * angle);
+                points.push({x: x, y: y});
+            }
+
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            for (let i = 0; i < n; i++) {
+                ctx.strokeStyle = getRainbowColor(i, n);
+                ctx.beginPath();
+                ctx.moveTo(points[i].x, points[i].y);
+                ctx.lineTo(points[(i + m) % n].x, points[(i + m) % n].y);
+                ctx.stroke();
+            }
+        }
+
+        function animateDrawing(ctx, n, m, centerX, centerY, radius) {
+            let angle = (2 * Math.PI) / n;
+            let points = [];
+            for (let i = 0; i < n; i++) {
+                let x = centerX + radius * Math.cos(i * angle);
+                let y = centerY + radius * Math.sin(i * angle);
+                points.push({x: x, y: y});
+            }
+
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            let i = 0;
+            function drawNextLine() {
+                if (i < n) {
+                    ctx.strokeStyle = getRainbowColor(i, n);
+                    ctx.beginPath();
+                    ctx.moveTo(points[i].x, points[i].y);
+                    ctx.lineTo(points[(i + m) % n].x, points[(i + m) % n].y);
+                    ctx.stroke();
+                    i++;
+                    setTimeout(drawNextLine, 500); // 次の線を描く前に少し待つ
+                }
+            }
+            drawNextLine();
+        }
+
+        function startDrawing() {
+            const n = parseInt(document.getElementById('n').value);
+            const m = parseInt(document.getElementById('m').value);
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 200;
+            
+            animateDrawing(ctx, n, m, centerX, centerY, radius);
+        }
+    </script>
+</body>
+</html>
