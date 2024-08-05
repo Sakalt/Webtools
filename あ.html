@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chants of Sennaar風ゲーム</title>
+    <style>
+        .room {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #333;
+        }
+        #room1 {
+            display: block;
+            background-color: #e0f7fa; /* 部屋1の色 */
+        }
+        #room2 {
+            background-color: #f1f8e9; /* 部屋2の色 */
+        }
+        #kanjiCanvas {
+            border: 1px solid #000;
+        }
+        .dialogue {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="room1" class="room">
+        <h2>部屋 1</h2>
+        <canvas id="kanjiCanvas" width="300" height="300"></canvas>
+        <button onclick="goToRoom(2)">次の部屋へ</button>
+        <button onclick="addNote()">ノートに追加</button>
+        <div id="notes"></div>
+        <div id="dialogue1" class="dialogue">
+            <p>キャラクター 1: こんにちは、私は古代の言語の研究者です。ここでは独自の文字を解読することができます。</p>
+        </div>
+    </div>
+    <div id="room2" class="room">
+        <h2>部屋 2</h2>
+        <button onclick="goToRoom(1)">前の部屋へ</button>
+        <input type="text" id="predictionInput" placeholder="予測を入力">
+        <button onclick="submitPrediction()">予測を送信</button>
+        <div id="feedback"></div>
+        <div id="dialogue2" class="dialogue">
+            <p>キャラクター 2: ここには隠されたメッセージがあります。注意深く探してみてください。</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('kanjiCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 独自の文字を描画する関数
+        function drawCustomKanji() {
+            ctx.fillStyle = '#000';
+            ctx.font = '48px sans-serif';
+            
+            // 田, 大, 山の形を模した独自の文字
+            ctx.strokeRect(50, 50, 100, 100); // 田
+            ctx.fillText('田', 50, 200);
+            
+            ctx.strokeRect(50, 220, 100, 50); // 大
+            ctx.fillText('大', 50, 300);
+            
+            ctx.beginPath();
+            ctx.moveTo(50, 350);
+            ctx.lineTo(150, 350);
+            ctx.lineTo(100, 400);
+            ctx.closePath();
+            ctx.stroke(); // 山
+            ctx.fillText('山', 50, 430);
+        }
+
+        drawCustomKanji();
+
+        const notes = [];
+        function addNote() {
+            const note = '解読された文字の情報';
+            notes.push(note);
+            document.getElementById('notes').innerHTML = notes.join('<br>');
+        }
+
+        const correctAnswer = '正しい解読';
+        function submitPrediction() {
+            const userPrediction = document.getElementById('predictionInput').value;
+            const feedback = userPrediction === correctAnswer ? '正解です！' : '不正解です。';
+            document.getElementById('feedback').innerText = feedback;
+        }
+
+        function goToRoom(roomNumber) {
+            document.querySelectorAll('.room').forEach(room => room.style.display = 'none');
+            document.getElementById(`room${roomNumber}`).style.display = 'block';
+        }
+    </script>
+</body>
+</html>
