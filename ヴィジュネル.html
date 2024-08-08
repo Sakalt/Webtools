@@ -1,1 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ヴィジュネル暗号</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ヴィジュネル暗号</h1>
+        <div id="menu">
+            <label for="alphabet">文字一覧:</label>
+            <input type="text" id="alphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZ">
+            <label for="key">鍵:</label>
+            <input type="text" id="key">
+            <button onclick="toggleMenu()">メニューの表示/非表示</button>
+        </div>
+        <label for="inputText">入力テキスト:</label>
+        <input type="text" id="inputText">
+        <button onclick="encrypt()">暗号化</button>
+        <button onclick="decrypt()">復号化</button>
+        <label for="outputText">出力テキスト:</label>
+        <input type="text" id="outputText" readonly>
+    </div>
 
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function getAlphabet() {
+            return document.getElementById('alphabet').value;
+        }
+
+        function getKey() {
+            return document.getElementById('key').value;
+        }
+
+        function vigenereEncrypt(text, key, alphabet) {
+            let result = '';
+            let keyIndex = 0;
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                let charIndex = alphabet.indexOf(char.toUpperCase());
+                if (charIndex !== -1) {
+                    let keyChar = key[keyIndex % key.length].toUpperCase();
+                    let keyCharIndex = alphabet.indexOf(keyChar);
+                    let encryptedIndex = (charIndex + keyCharIndex) % alphabet.length;
+                    result += alphabet[encryptedIndex];
+                    keyIndex++;
+                } else {
+                    result += char;  // 非アルファベット文字はそのまま
+                }
+            }
+            return result;
+        }
+
+        function vigenereDecrypt(text, key, alphabet) {
+            let result = '';
+            let keyIndex = 0;
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                let charIndex = alphabet.indexOf(char.toUpperCase());
+                if (charIndex !== -1) {
+                    let keyChar = key[keyIndex % key.length].toUpperCase();
+                    let keyCharIndex = alphabet.indexOf(keyChar);
+                    let decryptedIndex = (charIndex - keyCharIndex + alphabet.length) % alphabet.length;
+                    result += alphabet[decryptedIndex];
+                    keyIndex++;
+                } else {
+                    result += char;  // 非アルファベット文字はそのまま
+                }
+            }
+            return result;
+        }
+
+        function encrypt() {
+            const text = document.getElementById('inputText').value;
+            const key = getKey();
+            const alphabet = getAlphabet();
+            const encryptedText = vigenereEncrypt(text, key, alphabet);
+            document.getElementById('outputText').value = encryptedText;
+        }
+
+        function decrypt() {
+            const text = document.getElementById('inputText').value;
+            const key = getKey();
+            const alphabet = getAlphabet();
+            const decryptedText = vigenereDecrypt(text, key, alphabet);
+            document.getElementById('outputText').value = decryptedText;
+        }
+    </script>
+</body>
+</html>
