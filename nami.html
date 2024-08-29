@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>波形表示サイト</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        #codeInput { width: 100%; height: 150px; }
+    </style>
+</head>
+<body>
+    <textarea id="codeInput" placeholder="ここにJavaScriptコードを入力してください..."></textarea>
+    <button onclick="runCode()">コード実行</button>
+    <canvas id="waveCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let bufferSize = 2048;
+        let scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+        let buffer = new Float32Array(bufferSize);
+        let codeFunction = null;
+
+        function runCode() {
+            const code = document.getElementById('codeInput').value;
+
+            try {
+                codeFunction = new Function('frequency', 'time', code);
+                scriptProcessor.onaudioprocess = function(event) {
+                    const output = event.outputBuffer.getChannelData(0);
+                    const time = audioContext.currentTime;
+
+                    for (let i = 0; i < bufferSize; i++) {
+                        buffer[i] = codeFunction(440, time + i / audioContext.sampleRate); // 440Hzの基本周波数で実行
+                        output[i] = buffer[i];
+                    }
+                    drawWave(output);
+                };
+
+                scriptProcessor.connect(audioContext.destination);
+            } catch (error) {
+                alert('エラー: ' + error.message);
+            }
+        }
+
+        function drawWave(data) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+
+            const step = canvas.width / bufferSize;
+            for (let i = 0; i < bufferSize; i++) {
+                const x = i * step;
+                const y = canvas.height / 2 + data[i] * canvas.height / 4; // 縦軸にスケーリング
+                ctx.lineTo(x, y);
+            }
+
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.strokeStyle = 'blue';
+            ctx.stroke();
+        }
+    </script>
+</body>
+</html>
